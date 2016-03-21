@@ -653,6 +653,7 @@
 		<module>extensions</module>
 		<module>services</module>
 		<module>test</module>
+		<module>socket-ingest-ais</module>
 	</modules>
 	<repositories>
 		<repository>
