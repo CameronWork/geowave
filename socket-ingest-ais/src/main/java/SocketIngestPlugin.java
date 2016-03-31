@@ -2,14 +2,14 @@ import com.vividsolutions.jts.geom.Coordinate;
 import com.vividsolutions.jts.geom.Geometry;
 import dk.tbsalling.aismessages.nmea.exceptions.InvalidMessage;
 import mil.nga.giat.geowave.adapter.vector.FeatureDataAdapter;
-import mil.nga.giat.geowave.core.cli.*;
+import mil.nga.giat.geowave.core.cli.CommandLineResult;
+import mil.nga.giat.geowave.core.cli.DataStoreCommandLineOptions;
 import mil.nga.giat.geowave.core.geotime.GeometryUtils;
 import mil.nga.giat.geowave.core.geotime.ingest.SpatialDimensionalityTypeProvider;
 import mil.nga.giat.geowave.core.ingest.AbstractIngestCommandLineDriver;
 import mil.nga.giat.geowave.core.ingest.IngestCommandLineOptions;
 import mil.nga.giat.geowave.core.ingest.IngestFormatPluginProviderSpi;
 import mil.nga.giat.geowave.core.ingest.socket.AISData;
-import mil.nga.giat.geowave.core.store.DataStore;
 import mil.nga.giat.geowave.core.store.IndexWriter;
 import mil.nga.giat.geowave.core.store.index.PrimaryIndex;
 import mil.nga.giat.geowave.core.store.memory.DataStoreUtils;
@@ -22,7 +22,6 @@ import mil.nga.giat.geowave.datastore.accumulo.metadata.AccumuloIndexStore;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.commons.cli.CommandLine;
-import org.apache.commons.cli.HelpFormatter;
 import org.apache.commons.cli.Options;
 import org.apache.commons.cli.ParseException;
 import org.apache.log4j.Logger;
@@ -37,26 +36,36 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.net.ConnectException;
 import java.net.Socket;
-import java.util.*;
+import java.util.Date;
+import java.util.List;
+import java.util.Timer;
+import java.util.TimerTask;
 
 /**
  * Created by cameron on 3/03/16.
  */
-public class SocketIngestPlugin extends
+class SocketIngestPlugin extends
         AbstractIngestCommandLineDriver {
-    protected DataStoreCommandLineOptions dataStoreOptions;
-    protected IngestCommandLineOptions ingestOptions;
-    private final static Logger LOGGER = Logger.getLogger(SocketListener.class);
+    private DataStoreCommandLineOptions dataStoreOptions;
+    private IngestCommandLineOptions ingestOptions;
+    private final static Logger LOGGER = Logger.getLogger(SocketIngestPlugin.class);
 
-    String serverAddr = null;
-    int serverPort = 0;
-    String zookeepers = "localhost:2181";
-    String accumuloInstance = "geowave";
-    String accumuloUser = "root";
-    String accumuloPass = "password";
+    private String serverAddr = null;
+    private int serverPort = 0;
+    private String zookeepers = "localhost:2181";
+    private String accumuloInstance = "geowave";
+    private String accumuloUser = "root";
+    private String accumuloPass = "password";
+    private AccumuloDataStore geowaveDataStore;
+
+    private IndexWriter indexWriter = null;
+    private FeatureDataAdapter adapter = null;
+    private SimpleFeatureBuilder pointBuilder = null;
+
+    private final Object lock = new Object();
 
 
-    public SocketIngestPlugin(
+    SocketIngestPlugin(
             final String operation) {
         super(
                 operation);
@@ -97,144 +106,148 @@ public class SocketIngestPlugin extends
     protected boolean runInternal(
             String[] args,
             List<IngestFormatPluginProviderSpi<?, ?>> pluginProviders) {
-        try {
-            // ServerSocket serverSocket = new ServerSocket(port);
-            // LOGGER.trace("Opened listen socket on port " + port);
-            if (serverAddr == null) {
-                LOGGER.trace("Server address not set, add it to the commandline args");
-                return false;
-            }
-            Socket socket = new Socket(
-                    serverAddr,
-                    serverPort);
-            while (true) {
-                // Socket socket = serverSocket.accept();
-                new SocketListener(
-                        socket).run();
-            }
-        } catch (ConnectException f) {
-            LOGGER.trace("Connection Failed: " + f.getLocalizedMessage());
+
+        if (serverAddr == null) {
+            LOGGER.trace("Server address not set, add it to the commandline args");
             return false;
         }
-        catch (IOException e) {
-            e.printStackTrace();
-            return false;
-        }
-    }
-
-    class SocketListener implements
-            Runnable {
-        Socket socket;
-
-        SocketListener(
-                Socket client) {
-            this.socket = client;
-        }
-
-        IndexWriter indexWriter = null;
-        FeatureDataAdapter adapter = null;
-        SimpleFeatureBuilder pointBuilder = null;
-
-        @Override
-        public void run() {
+        while (true) {
             try {
-                init();
-                BufferedReader in = new BufferedReader(
-                        new InputStreamReader(
-                                socket.getInputStream()));
-                while (!socket.isClosed()) {
-                    String line = in.readLine();
-                    processLine(line);
-                    System.out.println(line);
+                // ServerSocket serverSocket = new ServerSocket(port);
+                // LOGGER.trace("Opened listen socket on port " + port);
+
+                Socket socket = new Socket(
+                        serverAddr,
+                        serverPort);
+                try {
+                    init();
+                    BufferedReader in = new BufferedReader(
+                            new InputStreamReader(
+                                    socket.getInputStream()));
+                    while (!socket.isClosed()) {
+                        String line = in.readLine();
+                        processLine(line);
+                        System.out.println(line);
+                    }
+                } catch (IOException e) {
+                    LOGGER.trace(e.getLocalizedMessage());
+
                 }
+            } catch (ConnectException f) {
+                LOGGER.trace("Connection Failed: " + f.getLocalizedMessage());
             } catch (IOException e) {
-                LOGGER.trace(e.getLocalizedMessage());
-            }
-        }
-
-        protected void processLine(
-                final String line) {
-            LOGGER.trace(line);
-            try {
-                AISData point = new AISData(
-                        line);
-                pointBuilder.set(
-                        "geometry",
-                        GeometryUtils.GEOMETRY_FACTORY.createPoint(new Coordinate(
-                                point.getLongitude(),
-                                point.getLatitude())));
-                pointBuilder.set(
-                        "TimeStamp",
-                        new Date(point.getTime()));
-                pointBuilder.set(
-                        "Latitude",
-                        point.getLatitude());
-                pointBuilder.set(
-                        "Longitude",
-                        point.getLongitude());
-                pointBuilder.set(
-                        "Heading",
-                        point.getHeading());
-                pointBuilder.set(
-                        "ShipID",
-                        point.getShipID());
-                pointBuilder.set(
-                        "data",
-                        line);
-                // Note since trajectoryID and comment are marked as nillable we
-                // don't need to set them (they default ot null).
-
-                SimpleFeature sft = pointBuilder.buildFeature(null);
-
-                indexWriter.write(
-                        adapter,
-                        sft);
-            } catch (InvalidMessage e) {
-                LOGGER.trace(e.getLocalizedMessage());
-            }
-        }
-
-        private void init() {
-            try {
-                String geowaveNamespace = "aisdata";
-                final BasicAccumuloOperations bao = new BasicAccumuloOperations(
-                        zookeepers,
-                        accumuloInstance,
-                        accumuloUser,
-                        accumuloPass,
-                        geowaveNamespace);
-                final DataStore geowaveDataStore = new AccumuloDataStore(
-                        new AccumuloIndexStore(
-                                bao),
-                        new AccumuloAdapterStore(
-                                bao),
-                        new AccumuloDataStatisticsStore(
-                                bao),
-                        new AccumuloSecondaryIndexDataStore(
-                                bao),
-                        bao);
-                final PrimaryIndex index = new SpatialDimensionalityTypeProvider().createPrimaryIndex();
-
-                final SimpleFeatureType point = createPointFeatureType();
-                indexWriter = geowaveDataStore.createIndexWriter(
-                        index,
-                        DataStoreUtils.DEFAULT_VISIBILITY);
-                pointBuilder = new SimpleFeatureBuilder(
-                        point);
-
-                // This is an adapter, that is needed to describe how to persist
-                // the
-                // data type passed
-                adapter = new FeatureDataAdapter(
-                        point);
-            } catch (AccumuloSecurityException | AccumuloException e) {
                 e.printStackTrace();
             }
         }
 
     }
 
-    public static SimpleFeatureType createPointFeatureType() {
+    private void processLine(
+            final String line) {
+        LOGGER.trace(line);
+        try {
+            AISData point = new AISData(
+                    line);
+            pointBuilder.set(
+                    "geometry",
+                    GeometryUtils.GEOMETRY_FACTORY.createPoint(new Coordinate(
+                            point.getLongitude(),
+                            point.getLatitude())));
+            pointBuilder.set(
+                    "TimeStamp",
+                    new Date(point.getTime()));
+            pointBuilder.set(
+                    "Latitude",
+                    point.getLatitude());
+            pointBuilder.set(
+                    "Longitude",
+                    point.getLongitude());
+            pointBuilder.set(
+                    "Heading",
+                    point.getHeading());
+            pointBuilder.set(
+                    "ShipID",
+                    point.getShipID());
+            pointBuilder.set(
+                    "data",
+                    line);
+            // Note since trajectoryID and comment are marked as nillable we
+            // don't need to set them (they default ot null).
+
+            SimpleFeature sft = pointBuilder.buildFeature(null);
+            synchronized (lock) {
+                indexWriter.write(
+                        adapter,
+                        sft);
+            }
+        } catch (InvalidMessage e) {
+            LOGGER.trace(e.getLocalizedMessage());
+        }
+    }
+
+    private void init() {
+        try {
+            String geowaveNamespace = "aisdata";
+            final BasicAccumuloOperations bao = new BasicAccumuloOperations(
+                    zookeepers,
+                    accumuloInstance,
+                    accumuloUser,
+                    accumuloPass,
+                    geowaveNamespace);
+            geowaveDataStore = new AccumuloDataStore(
+                    new AccumuloIndexStore(
+                            bao),
+                    new AccumuloAdapterStore(
+                            bao),
+                    new AccumuloDataStatisticsStore(
+                            bao),
+                    new AccumuloSecondaryIndexDataStore(
+                            bao),
+                    bao);
+            final PrimaryIndex index = new SpatialDimensionalityTypeProvider().createPrimaryIndex();
+
+            final SimpleFeatureType point = createPointFeatureType();
+            indexWriter = geowaveDataStore.createIndexWriter(
+                    index,
+                    DataStoreUtils.DEFAULT_VISIBILITY);
+            pointBuilder = new SimpleFeatureBuilder(
+                    point);
+
+            // This is an adapter, that is needed to describe how to persist
+            // the
+            // data type passed
+            adapter = new FeatureDataAdapter(
+                    point);
+
+            Timer time = new Timer();
+            FlushTask flushTask = new FlushTask();
+            time.schedule(flushTask, 0L, 10000L);
+
+        } catch (AccumuloSecurityException | AccumuloException e) {
+            e.printStackTrace();
+        }
+    }
+
+    private class FlushTask extends TimerTask {
+        @Override
+        public void run() {
+            synchronized (lock) {
+                //TODO: should just call indexWriter.flush() but this doesnt appear to work
+                try {
+                    indexWriter.close();
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+                final PrimaryIndex index = new SpatialDimensionalityTypeProvider().createPrimaryIndex();
+                indexWriter = geowaveDataStore.createIndexWriter(
+                        index,
+                        DataStoreUtils.DEFAULT_VISIBILITY);
+                System.out.println("Successfully flushed the index's");
+            }
+        }
+    }
+
+    private static SimpleFeatureType createPointFeatureType() {
 
         final SimpleFeatureTypeBuilder builder = new SimpleFeatureTypeBuilder();
         final AttributeTypeBuilder ab = new AttributeTypeBuilder();
