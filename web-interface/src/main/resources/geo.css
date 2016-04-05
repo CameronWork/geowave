@@ -1,0 +1,23 @@
+#map {
+    min-height: 1200px;
+    min-width: 640px;
+    resize: both;
+    overflow: auto;
+}
+
+.search {
+    display: table;
+    width: 100%;
+}
+
+#query {
+    display: table-cell;
+    vertical-align: middle;
+    width: 90%;
+}
+
+#submit {
+    display: table-cell;
+    vertical-align: middle;
+    width: 10%;
+}

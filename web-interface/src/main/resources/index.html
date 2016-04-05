@@ -1,0 +1,23 @@
+
+<html>
+    <head>
+        <link rel="stylesheet" href="geo.css">
+        <script   src="https://code.jquery.com/jquery-2.2.2.min.js"   integrity="sha256-36cp2Co+/62rEAAYHLmRCPIych47CvdM+uTBJwSzWjI="   crossorigin="anonymous"></script>
+        <script src="map.js"></script>
+        <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyD2e4g5xSQkm8IBj9WuHsVtyWcAM-PYkfQ&callback=initMap" async defer></script>
+    </head>
+    <body>
+        <input type="radio" name="filterType" title="Circle Filter" onclick="circleFilter()">Circle Filter</input>
+        <input type="radio" name="filterType" title="Rectangle Filter" onclick="recFilter()">Rectangle Filter</input>
+        <input type="radio" name="filterType" title="Poly Filter" onclick="polyFilter()">Poly Filter</input>
+        <input type="radio" name="filterType" title="No Filter" onclick="clearFilter()" selected>Clear Filter</input>
+
+        <form>
+        <div class="search">
+          <input id="query" type=search>
+          <input id="submit" type="submit" title="Search" onclick="searchButton()">
+        </div>
+        <div id="map"></div>
+        <div id="results"></div>
+    </body>
+</html>
