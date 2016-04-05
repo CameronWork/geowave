@@ -1,3 +1,5 @@
+package mil.nga.giat.geowave.core.ingest.socket;
+
 import mil.nga.giat.geowave.core.cli.CLIOperation;
 import mil.nga.giat.geowave.core.cli.CLIOperationCategory;
 import mil.nga.giat.geowave.core.cli.CLIOperationProviderSpi;

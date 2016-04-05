@@ -1,6 +1,9 @@
+package mil.nga.giat.geowave.core.ingest.socket;
+
 import com.vividsolutions.jts.geom.Coordinate;
 import com.vividsolutions.jts.geom.Geometry;
 import dk.tbsalling.aismessages.nmea.exceptions.InvalidMessage;
+import dk.tbsalling.aismessages.nmea.exceptions.UnsupportedMessageType;
 import mil.nga.giat.geowave.adapter.vector.FeatureDataAdapter;
 import mil.nga.giat.geowave.core.cli.CommandLineResult;
 import mil.nga.giat.geowave.core.cli.DataStoreCommandLineOptions;
@@ -9,7 +12,6 @@ import mil.nga.giat.geowave.core.geotime.ingest.SpatialDimensionalityTypeProvide
 import mil.nga.giat.geowave.core.ingest.AbstractIngestCommandLineDriver;
 import mil.nga.giat.geowave.core.ingest.IngestCommandLineOptions;
 import mil.nga.giat.geowave.core.ingest.IngestFormatPluginProviderSpi;
-import mil.nga.giat.geowave.core.ingest.socket.AISData;
 import mil.nga.giat.geowave.core.store.IndexWriter;
 import mil.nga.giat.geowave.core.store.index.PrimaryIndex;
 import mil.nga.giat.geowave.core.store.memory.DataStoreUtils;
@@ -180,7 +182,7 @@ class SocketIngestPlugin extends
                         adapter,
                         sft);
             }
-        } catch (InvalidMessage e) {
+        } catch (InvalidMessage | UnsupportedMessageType e) {
             LOGGER.trace(e.getLocalizedMessage());
         }
     }
