@@ -1,6 +1,5 @@
 import com.vividsolutions.jts.geom.Coordinate;
 import com.vividsolutions.jts.geom.Geometry;
-import com.vividsolutions.jts.geom.Point;
 import com.vividsolutions.jts.io.WKTReader;
 import mil.nga.giat.geowave.adapter.vector.FeatureDataAdapter;
 import mil.nga.giat.geowave.adapter.vector.plugin.GeoWaveGTDataStore;
@@ -9,6 +8,7 @@ import mil.nga.giat.geowave.core.geotime.store.filter.SpatialQueryFilter;
 import mil.nga.giat.geowave.core.geotime.store.query.SpatialQuery;
 import mil.nga.giat.geowave.core.geotime.store.query.SpatialTemporalQuery;
 import mil.nga.giat.geowave.core.index.ByteArrayId;
+import mil.nga.giat.geowave.core.ingest.socket.JSONAggregation;
 import mil.nga.giat.geowave.core.store.CloseableIterator;
 import mil.nga.giat.geowave.core.store.DataStore;
 import mil.nga.giat.geowave.core.store.adapter.AdapterStore;
@@ -60,7 +60,9 @@ class DataHandler extends AbstractHandler {
                 "AIS_FEATURE");
         FeatureDataAdapter bfAdapter = (FeatureDataAdapter) adapterStore.getAdapter(bfAdId);
         queryOptions = new QueryOptions(bfAdapter);
-        queryOptions.setLimit(1000);
+        queryOptions.setAggregation(new JSONAggregation<SimpleFeature>(),
+                bfAdapter);
+
     }
 
 
@@ -75,78 +77,52 @@ class DataHandler extends AbstractHandler {
             String values[] = args.split(",");
             String timeStart = request.getParameter("startTime");
             String timeEnd = request.getParameter("endTime");
-            CloseableIterator<SimpleFeature> iterator = null;
+            SpatialQuery query = null;
+
             try {
                 if (values.length < 3) {
                     System.out.println("INVALID QUERY");
                     return;
                 } else if (values.length == 3) {
                     System.out.println("RADIUS QUERY");
-                    iterator = radiusQuery(values, timeStart, timeEnd);
+                    query = radiusQuery(values, timeStart, timeEnd);
                 } else if ((values.length & 1) == 0) //only even numbers
                 {
                     System.out.println("POLY QUERY");
-                    iterator = polyQuery(values, timeStart, timeEnd);
+                    query = polyQuery(values, timeStart, timeEnd);
+                }
+                CloseableIterator<?> iterator = dataStore.query(
+                        queryOptions,
+                        query);
+                if (iterator != null) {
+                    writeJSON(iterator, response.getWriter());
+                    response.setStatus(HttpServletResponse.SC_OK);
+                    baseRequest.setHandled(true);
+                } else {
+                    response.sendError(500);
                 }
             } catch (ParseException | TransformException | com.vividsolutions.jts.io.ParseException e) {
                 e.printStackTrace();
             }
 
-            if (iterator != null) {
-                writeJSON(iterator, response.getWriter());
-                response.setStatus(HttpServletResponse.SC_OK);
-                baseRequest.setHandled(true);
-            } else {
-                response.sendError(500);
-            }
+
         }
     }
 
-    private void writeJSON(CloseableIterator<SimpleFeature> iterator, PrintWriter writer) {
+    private void writeJSON(CloseableIterator<?> iterator, PrintWriter writer) {
         StringBuilder sb = new StringBuilder();
-        sb.append("{\n");
+        sb.append("{");
         while (iterator.hasNext()) {
-            SimpleFeature sf = iterator.next();
-            sb.append("\"");
-            sb.append(sf.getAttribute("data"));
-            sb.append("\":");
-            sb.append("{\"name\":\"");
-            sb.append(sf.getAttribute("ShipID"));
-            sb.append("\",\"pointCoords\":\"");
-            Object geometry = sf.getDefaultGeometry();
-            if (geometry instanceof Point) {
-                sb.append(((Point)geometry).getCoordinate().y);
-                sb.append(" ");
-                sb.append(((Point)geometry).getCoordinate().x);
-            } else {
-                sb.append(sf.getDefaultGeometry());
+            Object json = iterator.next();
+            if (json instanceof JSONAggregation) {
+                sb.append(json.toString());
+                if (iterator.hasNext()) {
+                    sb.append(",");
+                }
             }
-            sb.append("\"}");
-            if (iterator.hasNext()) {
-                sb.append(",");
-            }
-
         }
         sb.append("}");
         writer.println(sb.toString());
-
-//        JSONObject map = new JSONObject();
-//        while (iterator.hasNext()) {
-//
-//            SimpleFeature sf = iterator.next();
-//            JSONObject obj = new JSONObject();
-//            obj.put("name",sf.getAttribute("ShipID"));
-//
-//            Object geometry = sf.getDefaultGeometry();
-//            if (geometry instanceof Point) {
-//                obj.put("pointCoords", ((Point)geometry).getCoordinate().y+" "+((Point)geometry).getCoordinate().x);
-//            } else {
-//                obj.put("pointCoords", sf.getDefaultGeometry());
-//            }
-//            map.put(sf.getAttribute("data").toString(), obj);
-//        }
-//        writer.print(map.toString());
-
     }
 
     /**
@@ -156,7 +132,7 @@ class DataHandler extends AbstractHandler {
      * @throws TransformException
      * @throws ParseException
      */
-    private CloseableIterator<SimpleFeature> radiusQuery(String[] values) throws TransformException, ParseException {
+    private SpatialQuery radiusQuery(String[] values) throws TransformException, ParseException {
         SpatialQuery query = new SpatialQuery(
                 mil.nga.giat.geowave.adapter.vector.utils.GeometryUtils.buffer(
                         GeoWaveGTDataStore.DEFAULT_CRS,
@@ -166,10 +142,7 @@ class DataHandler extends AbstractHandler {
                         "meter",
                         Double.parseDouble(values[2]) * 1000).getKey(),
                 SpatialQueryFilter.CompareOperation.CONTAINS);
-
-        return dataStore.query(
-                queryOptions,
-                query);
+        return query;
     }
 
     /**
@@ -179,7 +152,7 @@ class DataHandler extends AbstractHandler {
      * @throws TransformException
      * @throws ParseException
      */
-    private CloseableIterator<SimpleFeature> radiusQuery(String[] values, String timeStart, String timeEnd) throws TransformException, ParseException {
+    private SpatialQuery radiusQuery(String[] values, String timeStart, String timeEnd) throws TransformException, ParseException {
         Date startTime;
         Date endTime;
         if (timeStart == null && timeEnd == null) {
@@ -210,10 +183,7 @@ class DataHandler extends AbstractHandler {
                         Double.parseDouble(values[2]) * 1000).getKey(),
                 SpatialQueryFilter.CompareOperation.CONTAINS);
 
-
-        return dataStore.query(
-                queryOptions,
-                query);
+        return query;
     }
 
     /**
@@ -224,7 +194,7 @@ class DataHandler extends AbstractHandler {
      * @throws IOException
      * @throws com.vividsolutions.jts.io.ParseException
      */
-    private CloseableIterator<SimpleFeature> polyQuery(String values[])
+    private SpatialQuery polyQuery(String values[])
             throws ParseException,
             IOException, com.vividsolutions.jts.io.ParseException {
 
@@ -250,9 +220,7 @@ class DataHandler extends AbstractHandler {
         SpatialQuery query = new SpatialQuery(
                 queryPolygon);
 
-        return dataStore.query(
-                queryOptions,
-                query);
+        return query;
     }
 
     /**
@@ -263,7 +231,7 @@ class DataHandler extends AbstractHandler {
      * @throws IOException
      * @throws com.vividsolutions.jts.io.ParseException
      */
-    private CloseableIterator<SimpleFeature> polyQuery(String values[], String timeStart, String timeEnd)
+    private SpatialQuery polyQuery(String values[], String timeStart, String timeEnd)
             throws ParseException,
             IOException, com.vividsolutions.jts.io.ParseException {
         Date startTime;
@@ -308,8 +276,6 @@ class DataHandler extends AbstractHandler {
                 endTime,
                 queryPolygon);
 
-        return dataStore.query(
-                queryOptions,
-                query);
+        return query;
     }
 }
