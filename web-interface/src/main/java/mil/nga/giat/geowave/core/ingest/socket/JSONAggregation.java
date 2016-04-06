@@ -13,16 +13,14 @@ import java.nio.charset.StandardCharsets;
 public class JSONAggregation<T> implements
         Aggregation<T> {
     private StringBuilder json = new StringBuilder();
-    private boolean notFirst = false;
 
     @Override
     public void aggregate(T entry) {
         if (entry instanceof SimpleFeature) {
-            SimpleFeature sf = (SimpleFeature)entry;
-            if (notFirst) {
+            SimpleFeature sf = (SimpleFeature) entry;
+            if (json.length() != 0) {
                 json.append(",");
             }
-            notFirst = true;
             json.append("\"");
             json.append(sf.getAttribute("data"));
             json.append("\":");
@@ -31,9 +29,9 @@ public class JSONAggregation<T> implements
             json.append("\",\"pointCoords\":\"");
             Object geometry = sf.getDefaultGeometry();
             if (geometry instanceof Point) {
-                json.append(((Point)geometry).getCoordinate().y);
+                json.append(((Point) geometry).getCoordinate().y);
                 json.append(" ");
-                json.append(((Point)geometry).getCoordinate().x);
+                json.append(((Point) geometry).getCoordinate().x);
             } else {
                 json.append(sf.getDefaultGeometry());
             }
@@ -45,6 +43,9 @@ public class JSONAggregation<T> implements
     @Override
     public void merge(Mergeable merge) {
         if ((merge != null) && (merge instanceof JSONAggregation)) {
+            if (json.length() != 0) {
+                json.append(",");
+            }
             json.append(merge.toString());
         }
     }
