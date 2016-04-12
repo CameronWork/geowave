@@ -38,39 +38,60 @@ import java.util.Date;
 class DataHandler extends AbstractHandler {
 
     private static DataStore dataStore;
+    boolean initialised = false;
     private QueryOptions queryOptions;
-    DataHandler() throws AccumuloSecurityException, AccumuloException {
-        String zookeepers = "localhost:2181";
-        String accumuloInstance = "geowave";
-        String accumuloUser = "root";
-        String accumuloPass = "password";
-        String geowaveNamespace = "aisdata";
-
-        final BasicAccumuloOperations operations = new BasicAccumuloOperations(
-                zookeepers,
-                accumuloInstance,
-                accumuloUser,
-                accumuloPass,
-                geowaveNamespace);
-        dataStore = new AccumuloDataStore(
-                operations);
-        AdapterStore adapterStore = new AccumuloAdapterStore(
-                operations);
-        ByteArrayId bfAdId = new ByteArrayId(
-                "AIS_FEATURE");
-        FeatureDataAdapter bfAdapter = (FeatureDataAdapter) adapterStore.getAdapter(bfAdId);
-        queryOptions = new QueryOptions(bfAdapter);
-        queryOptions.setAggregation(new JSONAggregation<SimpleFeature>(),
-                bfAdapter);
-
+    DataHandler() {
+        init();
     }
 
+    public void init() {
+
+        if (initialised == true) {
+            return;
+        }
+        try {
+            String zookeepers = "localhost:2181";
+            String accumuloInstance = "geowave";
+            String accumuloUser = "root";
+            String accumuloPass = "password";
+            String geowaveNamespace = "aisdata";
+
+            final BasicAccumuloOperations operations = new BasicAccumuloOperations(
+                    zookeepers,
+                    accumuloInstance,
+                    accumuloUser,
+                    accumuloPass,
+                    geowaveNamespace);
+            dataStore = new AccumuloDataStore(
+                    operations);
+            AdapterStore adapterStore = new AccumuloAdapterStore(
+                    operations);
+            ByteArrayId bfAdId = new ByteArrayId(
+                    "AIS_FEATURE");
+            FeatureDataAdapter bfAdapter = (FeatureDataAdapter) adapterStore.getAdapter(bfAdId);
+            queryOptions = new QueryOptions(bfAdapter);
+            queryOptions.setAggregation(new JSONAggregation<SimpleFeature>(),
+                    bfAdapter);
+            initialised = true;
+        }
+        catch (AccumuloSecurityException | AccumuloException e) {
+            e.printStackTrace();
+            initialised = false;
+        }
+    }
 
     public void handle(String target,
                        Request baseRequest,
                        HttpServletRequest request,
                        HttpServletResponse response)
             throws IOException, ServletException {
+        init();
+        if (!initialised) {
+            response.setStatus(HttpServletResponse.SC_SERVICE_UNAVAILABLE);
+            baseRequest.setHandled(true);
+            response.getWriter().write("No Connection to Database :(");
+            return;
+        }
         String file = request.getPathInfo();
         if (file.contains("/geosearch")) {
             String args = request.getParameter("values");
