@@ -35,6 +35,8 @@ public class JSONAggregation<T> implements
             } else {
                 json.append(sf.getDefaultGeometry());
             }
+            json.append("\",\"time\":\"");
+            json.append(sf.getAttribute("TimeStamp"));
             json.append("\"}");
         }
 
