@@ -26,7 +26,7 @@ public class AisServerFake implements Runnable {
     }
 
     public static void main(String args[]) throws IOException {
-        ServerSocket ss = new ServerSocket(11010);
+        ServerSocket ss = new ServerSocket(10110);
         while (!ss.isClosed()) {
             Socket sock = ss.accept();
             Thread trd = new Thread(new AisServerFake(sock));
