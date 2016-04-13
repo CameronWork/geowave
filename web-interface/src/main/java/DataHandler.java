@@ -1,5 +1,6 @@
 import com.vividsolutions.jts.geom.Coordinate;
 import com.vividsolutions.jts.geom.Geometry;
+import com.vividsolutions.jts.geom.Point;
 import com.vividsolutions.jts.io.WKTReader;
 import mil.nga.giat.geowave.adapter.vector.FeatureDataAdapter;
 import mil.nga.giat.geowave.adapter.vector.plugin.GeoWaveGTDataStore;
@@ -70,8 +71,7 @@ class DataHandler extends AbstractHandler {
                     "AIS_FEATURE");
             FeatureDataAdapter bfAdapter = (FeatureDataAdapter) adapterStore.getAdapter(bfAdId);
             queryOptions = new QueryOptions(bfAdapter);
-            queryOptions.setAggregation(new JSONAggregation<SimpleFeature>(),
-                    bfAdapter);
+            //queryOptions.setAggregation(new JSONAggregation<SimpleFeature>(),                   bfAdapter);
             initialised = true;
         }
         catch (AccumuloSecurityException | AccumuloException e) {
@@ -140,6 +140,29 @@ class DataHandler extends AbstractHandler {
                 if (iterator.hasNext()) {
                     sb.append(",");
                 }
+            }
+            else if (json instanceof SimpleFeature) {
+                SimpleFeature sf = (SimpleFeature) json;
+                if (sb.length() != 1) {
+                    sb.append(",");
+                }
+                sb.append("\"");
+                sb.append(sf.getAttribute("data"));
+                sb.append("\":");
+                sb.append("{\"name\":\"");
+                sb.append(sf.getAttribute("ShipID"));
+                sb.append("\",\"pointCoords\":\"");
+                Object geometry = sf.getDefaultGeometry();
+                if (geometry instanceof Point) {
+                    sb.append(((Point) geometry).getCoordinate().y);
+                    sb.append(" ");
+                    sb.append(((Point) geometry).getCoordinate().x);
+                } else {
+                    sb.append(sf.getDefaultGeometry());
+                }
+                sb.append("\",\"time\":\"");
+                sb.append(sf.getAttribute("TimeStamp"));
+                sb.append("\"}");
             }
         }
         sb.append("}");
