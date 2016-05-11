@@ -22,6 +22,7 @@ import mil.nga.giat.geowave.core.index.StringUtils;
 import mil.nga.giat.geowave.core.store.DataStore;
 import mil.nga.giat.geowave.core.store.GeoWaveStoreFinder;
 import mil.nga.giat.geowave.core.store.StoreFactoryFamilySpi;
+import mil.nga.giat.geowave.core.store.adapter.AdapterIndexMappingStore;
 import mil.nga.giat.geowave.core.store.adapter.AdapterStore;
 import mil.nga.giat.geowave.core.store.adapter.statistics.DataStatisticsStore;
 import mil.nga.giat.geowave.core.store.config.ConfigUtils;
@@ -37,6 +38,8 @@ public class GeoWaveRasterConfig
 		// behavior of tile mosaicing that is already set within each adapter
 		INTERPOLATION(
 				"interpolationOverride"),
+		SCALE_TO_8BIT(
+				"scaleTo8Bit"),
 		EQUALIZE_HISTOGRAM(
 				"equalizeHistogramOverride");
 		private String configName;
@@ -57,8 +60,11 @@ public class GeoWaveRasterConfig
 	private IndexStore indexStore;
 	private AdapterStore adapterStore;
 	private DataStatisticsStore dataStatisticsStore;
+	private AdapterIndexMappingStore adapterIndexMappingStore;
 
 	private Boolean equalizeHistogramOverride = null;
+
+	private final Boolean scaleTo8Bit = null;
 
 	private Integer interpolationOverride = null;
 
@@ -233,6 +239,16 @@ public class GeoWaveRasterConfig
 		return dataStatisticsStore;
 	}
 
+	public synchronized AdapterIndexMappingStore getAdapterIndexMappingStore() {
+		if (adapterIndexMappingStore == null) {
+			adapterIndexMappingStore = factoryFamily.getAdapterIndexMappingStoreFactory().createStore(
+					ConfigUtils.populateOptionsFromList(
+							factoryFamily.getDataStatisticsStoreFactory().createOptionsInstance(),
+							storeConfigObj));
+		}
+		return adapterIndexMappingStore;
+	}
+
 	public boolean isInterpolationOverrideSet() {
 		return (interpolationOverride != null);
 	}
@@ -244,6 +260,18 @@ public class GeoWaveRasterConfig
 		}
 
 		return Interpolation.getInstance(interpolationOverride);
+	}
+
+	public boolean isScaleTo8BitSet() {
+		return (equalizeHistogramOverride != null);
+	}
+
+	public boolean isScaleTo8Bit() {
+		if (!isScaleTo8BitSet()) {
+			throw new IllegalStateException(
+					"Scale To 8-bit is not set for this config");
+		}
+		return scaleTo8Bit;
 	}
 
 	public boolean isEqualizeHistogramOverrideSet() {

@@ -14,6 +14,7 @@ import java.awt.image.BufferedImage;
 import java.awt.image.ColorModel;
 import java.awt.image.ComponentColorModel;
 import java.awt.image.DataBuffer;
+import java.awt.image.IndexColorModel;
 import java.awt.image.Raster;
 import java.awt.image.RenderedImage;
 import java.awt.image.SampleModel;
@@ -58,6 +59,7 @@ import org.geotools.resources.i18n.ErrorKeys;
 import org.geotools.resources.i18n.Errors;
 import org.geotools.resources.image.ImageUtilities;
 import org.geotools.util.NumberRange;
+import org.opengis.coverage.SampleDimension;
 import org.opengis.coverage.SampleDimensionType;
 import org.opengis.coverage.grid.GridCoverage;
 import org.opengis.geometry.Envelope;
@@ -84,21 +86,30 @@ import mil.nga.giat.geowave.core.index.sfc.data.MultiDimensionalNumericData;
 public class RasterUtils
 {
 	private static final RenderingHints DEFAULT_RENDERING_HINTS = new RenderingHints(
-			new ImmutableMap.Builder().put(
-					RenderingHints.KEY_RENDERING,
-					RenderingHints.VALUE_RENDER_QUALITY).put(
-					RenderingHints.KEY_ALPHA_INTERPOLATION,
-					RenderingHints.VALUE_ALPHA_INTERPOLATION_QUALITY).put(
-					RenderingHints.KEY_ANTIALIASING,
-					RenderingHints.VALUE_ANTIALIAS_ON).put(
-					RenderingHints.KEY_COLOR_RENDERING,
-					RenderingHints.VALUE_COLOR_RENDER_QUALITY).put(
-					RenderingHints.KEY_DITHERING,
-					RenderingHints.VALUE_DITHER_ENABLE).put(
-					JAI.KEY_BORDER_EXTENDER,
-					BorderExtender.createInstance(BorderExtender.BORDER_COPY)).build());
+			new ImmutableMap.Builder()
+					.put(
+							RenderingHints.KEY_RENDERING,
+							RenderingHints.VALUE_RENDER_QUALITY)
+					.put(
+							RenderingHints.KEY_ALPHA_INTERPOLATION,
+							RenderingHints.VALUE_ALPHA_INTERPOLATION_QUALITY)
+					.put(
+							RenderingHints.KEY_ANTIALIASING,
+							RenderingHints.VALUE_ANTIALIAS_ON)
+					.put(
+							RenderingHints.KEY_COLOR_RENDERING,
+							RenderingHints.VALUE_COLOR_RENDER_QUALITY)
+					.put(
+							RenderingHints.KEY_DITHERING,
+							RenderingHints.VALUE_DITHER_ENABLE)
+					.put(
+							JAI.KEY_BORDER_EXTENDER,
+							BorderExtender.createInstance(
+									BorderExtender.BORDER_COPY))
+					.build());
 	private static Operations resampleOperations;
-	private final static Logger LOGGER = Logger.getLogger(RasterUtils.class);
+	private final static Logger LOGGER = Logger.getLogger(
+			RasterUtils.class);
 	private static final int MIN_SEGMENTS = 5;
 	private static final int MAX_SEGMENTS = 500;
 	private static final double SIMPLIFICATION_MAX_DEGREES = 0.0001;
@@ -108,13 +119,21 @@ public class RasterUtils
 			final GridCoverage gridCoverage ) {
 		try {
 			final Envelope sampleEnvelope = gridCoverage.getEnvelope();
-			final double avgSpan = (projectedReferenceEnvelope.getSpan(0) + projectedReferenceEnvelope.getSpan(1)) / 2;
+			final double avgSpan = (projectedReferenceEnvelope.getSpan(
+					0)
+					+ projectedReferenceEnvelope.getSpan(
+							1))
+					/ 2;
 
 			final Coordinate[] polyCoords = getWorldCoordinates(
-					sampleEnvelope.getMinimum(0),
-					sampleEnvelope.getMinimum(1),
-					sampleEnvelope.getMaximum(0),
-					sampleEnvelope.getMaximum(1),
+					sampleEnvelope.getMinimum(
+							0),
+					sampleEnvelope.getMinimum(
+							1),
+					sampleEnvelope.getMaximum(
+							0),
+					sampleEnvelope.getMaximum(
+							1),
 					(int) Math.min(
 							Math.max(
 									(avgSpan * MIN_SEGMENTS) / SIMPLIFICATION_MAX_DEGREES,
@@ -125,7 +144,8 @@ public class RasterUtils
 							GeoWaveGTRasterFormat.DEFAULT_CRS,
 							true));
 			return DouglasPeuckerSimplifier.simplify(
-					new GeometryFactory().createPolygon(polyCoords),
+					new GeometryFactory().createPolygon(
+							polyCoords),
 					SIMPLIFICATION_MAX_DEGREES);
 		}
 		catch (MismatchedDimensionException | TransformException | FactoryException e1) {
@@ -146,20 +166,25 @@ public class RasterUtils
 			return geometry1;
 		}
 		final List<Geometry> geometry = new ArrayList<Geometry>();
-		geometry.add(geometry1);
-		geometry.add(geometry2);
+		geometry.add(
+				geometry1);
+		geometry.add(
+				geometry2);
 		return DouglasPeuckerSimplifier.simplify(
-				combineIntoOneGeometry(geometry),
+				combineIntoOneGeometry(
+						geometry),
 				SIMPLIFICATION_MAX_DEGREES);
 	}
 
 	private static Geometry combineIntoOneGeometry(
 			final Collection<Geometry> geometries ) {
-		final GeometryFactory factory = JTSFactoryFinder.getGeometryFactory(null);
+		final GeometryFactory factory = JTSFactoryFinder.getGeometryFactory(
+				null);
 
 		// note the following geometry collection may be invalid (say with
 		// overlapping polygons)
-		final Geometry geometryCollection = factory.buildGeometry(geometries);
+		final Geometry geometryCollection = factory.buildGeometry(
+				geometries);
 
 		return geometryCollection.union();
 	}
@@ -287,7 +312,7 @@ public class RasterUtils
 
 	/**
 	 * Creates a math transform using the information provided.
-	 * 
+	 *
 	 * @return The math transform.
 	 * @throws IllegalStateException
 	 *             if the grid range or the envelope were not set.
@@ -307,10 +332,12 @@ public class RasterUtils
 		 * This is done by adding 0.5 to grid coordinates.
 		 */
 		final double translate;
-		if (PixelInCell.CELL_CENTER.equals(gridType)) {
+		if (PixelInCell.CELL_CENTER.equals(
+				gridType)) {
 			translate = 0.5;
 		}
-		else if (PixelInCell.CELL_CORNER.equals(gridType)) {
+		else if (PixelInCell.CELL_CORNER.equals(
+				gridType)) {
 			translate = 0.0;
 		}
 		else {
@@ -320,7 +347,8 @@ public class RasterUtils
 							"gridType",
 							gridType));
 		}
-		final Matrix matrix = MatrixFactory.create(dimension + 1);
+		final Matrix matrix = MatrixFactory.create(
+				dimension + 1);
 		final double[] minValuesPerDimension = fullBounds.getMinValuesPerDimension();
 		final double[] maxValuesPerDimension = fullBounds.getMaxValuesPerDimension();
 		for (int i = 0; i < dimension; i++) {
@@ -354,12 +382,13 @@ public class RasterUtils
 					dimension,
 					offset);
 		}
-		return ProjectiveTransform.create(matrix);
+		return ProjectiveTransform.create(
+				matrix);
 	}
 
 	/**
 	 * Returns the math transform as a two-dimensional affine transform.
-	 * 
+	 *
 	 * @return The math transform as a two-dimensional affine transform.
 	 * @throws IllegalStateException
 	 *             if the math transform is not of the appropriate type.
@@ -375,7 +404,8 @@ public class RasterUtils
 			return (AffineTransform) transform;
 		}
 		throw new IllegalStateException(
-				Errors.format(ErrorKeys.NOT_AN_AFFINE_TRANSFORM));
+				Errors.format(
+						ErrorKeys.NOT_AN_AFFINE_TRANSFORM));
 	}
 
 	public static void fillWithNoDataValues(
@@ -416,29 +446,54 @@ public class RasterUtils
 			final String coverageName,
 			final Interpolation interpolation,
 			final Histogram histogram,
+			final boolean scaleTo8Bit,
 			final ColorModel defaultColorModel ) {
 
 		if (pixelDimension == null) {
-			LOGGER.error("Pixel dimension can not be null");
+			LOGGER.error(
+					"Pixel dimension can not be null");
 			throw new IllegalArgumentException(
 					"Pixel dimension can not be null");
 		}
 
-		final double rescaleX = levelResX / (requestEnvelope.getSpan(0) / pixelDimension.getWidth());
-		final double rescaleY = levelResY / (requestEnvelope.getSpan(1) / pixelDimension.getHeight());
+		final double rescaleX = levelResX / (requestEnvelope.getSpan(
+				0) / pixelDimension.getWidth());
+		final double rescaleY = levelResY / (requestEnvelope.getSpan(
+				1) / pixelDimension.getHeight());
 		final double width = pixelDimension.getWidth() / rescaleX;
 		final double height = pixelDimension.getHeight() / rescaleY;
 
 		final int imageWidth = (int) Math.max(
-				Math.round(width),
+				Math.round(
+						width),
 				1);
 		final int imageHeight = (int) Math.max(
-				Math.round(height),
+				Math.round(
+						height),
 				1);
 		BufferedImage image = null;
-
+		int numDimensions;
+		SampleDimension[] sampleDimensions = null;
+		double[][] extrema = null;
+		boolean extremaValid = false;
 		while (gridCoverages.hasNext()) {
 			final GridCoverage currentCoverage = gridCoverages.next();
+			if (sampleDimensions == null) {
+				numDimensions = currentCoverage.getNumSampleDimensions();
+				sampleDimensions = new SampleDimension[numDimensions];
+				extrema = new double[2][numDimensions];
+				extremaValid = true;
+				for (int d = 0; d < numDimensions; d++) {
+					sampleDimensions[d] = currentCoverage.getSampleDimension(
+							d);
+					extrema[0][d] = sampleDimensions[d].getMinimumValue();
+					extrema[1][d] = sampleDimensions[d].getMaximumValue();
+					if ((extrema[1][d] - extrema[0][d]) <= 0) {
+						extremaValid = false;
+					}
+				}
+			}
+
 			final Envelope coverageEnv = currentCoverage.getEnvelope();
 			final RenderedImage coverageImage = currentCoverage.getRenderedImage();
 			if (image == null) {
@@ -449,8 +504,16 @@ public class RasterUtils
 						noDataValues,
 						coverageImage);
 			}
-			final int posx = (int) ((coverageEnv.getMinimum(0) - requestEnvelope.getMinimum(0)) / levelResX);
-			final int posy = (int) ((requestEnvelope.getMaximum(1) - coverageEnv.getMaximum(1)) / levelResY);
+			final int posx = (int) ((coverageEnv.getMinimum(
+					0)
+					- requestEnvelope.getMinimum(
+							0))
+					/ levelResX);
+			final int posy = (int) ((requestEnvelope.getMaximum(
+					1)
+					- coverageEnv.getMaximum(
+							1))
+					/ levelResY);
 
 			image.getRaster().setRect(
 					posx,
@@ -470,37 +533,78 @@ public class RasterUtils
 
 		if (xAxisSwitch) {
 			final Rectangle2D tmp = new Rectangle2D.Double(
-					requestEnvelope.getMinimum(1),
-					requestEnvelope.getMinimum(0),
-					requestEnvelope.getSpan(1),
-					requestEnvelope.getSpan(0));
+					requestEnvelope.getMinimum(
+							1),
+					requestEnvelope.getMinimum(
+							0),
+					requestEnvelope.getSpan(
+							1),
+					requestEnvelope.getSpan(
+							0));
 			resultEnvelope = new GeneralEnvelope(
 					tmp);
-			resultEnvelope.setCoordinateReferenceSystem(requestEnvelope.getCoordinateReferenceSystem());
+			resultEnvelope.setCoordinateReferenceSystem(
+					requestEnvelope.getCoordinateReferenceSystem());
 		}
 		else {
 			resultEnvelope = requestEnvelope;
 		}
+		final double scaleX = rescaleX * (width / imageWidth);
+		final double scaleY = rescaleY * (height / imageHeight);
+		if ((scaleX != 1) || (scaleY != 1)) {
+			image = rescaleImageViaPlanarImage(
+					interpolation,
+					rescaleX * (width / imageWidth),
+					rescaleY * (height / imageHeight),
+					image);
 
-		image = rescaleImageViaPlanarImage(
-				interpolation,
-				rescaleX * (width / imageWidth),
-				rescaleY * (height / imageHeight),
-				image);
-		RenderedImage result;
-		if (outputTransparentColor == null) {
-			result = image;
 		}
-		else {
+		RenderedImage result = image;
+		// hypothetically masking the output transparent color should happen
+		// before histogram stretching, but the masking seems to only work now
+		// when the image is bytes in each band which requires some amount of
+		// modification to the original data, we'll use extrema
+		if (extremaValid && scaleTo8Bit) {
+			final int dataType = result.getData().getDataBuffer().getDataType();
+			switch (dataType) {
+				// in case the original image has a USHORT pixel type without
+				// being associated
+				// with an index color model I would still go to 8 bits
+				case DataBuffer.TYPE_USHORT:
+					if (result.getColorModel() instanceof IndexColorModel) {
+						break;
+					}
+				case DataBuffer.TYPE_DOUBLE:
+				case DataBuffer.TYPE_FLOAT:
+				case DataBuffer.TYPE_INT:
+				case DataBuffer.TYPE_SHORT:
+					// rescale to byte
+					final ImageWorkerPredefineStats w = new ImageWorkerPredefineStats(
+							result);
+					// it was found that geoserver will perform this, and worse
+					// perform it on local extrema calculated from a single
+					// tile, this is our one opportunity to at least ensure this
+					// transformation is done without too much harm by using
+					// global extrema
+					result = w.setExtrema(
+							extrema).rescaleToBytes().getRenderedImage();
+			}
+		}
+		if (outputTransparentColor != null) {
 			result = ImageUtilities.maskColor(
 					outputTransparentColor,
-					image);
+					result);
 		}
 		if (histogram != null) {
 			// we should perform histogram equalization
 			final int numBands = histogram.getNumBands();
 			final float[][] cdFeq = new float[numBands][];
+			final double[][] computedExtrema = new double[2][numBands];
 			for (int b = 0; b < numBands; b++) {
+				computedExtrema[0][b] = histogram.getLowValue(
+						b);
+				computedExtrema[1][b] = histogram.getHighValue(
+						b);
 				final int numBins = histogram.getNumBins()[b];
 				cdFeq[b] = new float[numBins];
 				for (int i = 0; i < numBins; i++) {
@@ -512,10 +616,17 @@ public class RasterUtils
 			adaptedResult.setProperty(
 					"histogram",
 					histogram);
+			adaptedResult.setProperty(
+					"extrema",
+					computedExtrema);
 			result = JAI.create(
 					"matchcdf",
 					adaptedResult,
 					cdFeq);
+			if (!(result instanceof PlanarImage)) {
+				result = PlanarImage.wrapRenderedImage(
+						result);
+			}
 		}
 		return coverageFactory.create(
 				coverageName,
@@ -530,8 +641,10 @@ public class RasterUtils
 			final Image image,
 			final int type ) {
 		final BufferedImage bi = new BufferedImage(
-				image.getWidth(null),
-				image.getHeight(null),
+				image.getWidth(
+						null),
+				image.getHeight(
+						null),
 				type);
 		final Graphics g = bi.getGraphics();
 		g.drawImage(
@@ -556,7 +669,8 @@ public class RasterUtils
 			for (final String name : originalImage.getPropertyNames()) {
 				properties.put(
 						name,
-						originalImage.getProperty(name));
+						originalImage.getProperty(
+								name));
 			}
 		}
 
@@ -581,13 +695,15 @@ public class RasterUtils
 		if (noDataValues == null) {
 			final Graphics2D g2D = (Graphics2D) image.getGraphics();
 			final Color save = g2D.getColor();
-			g2D.setColor(backgroundColor);
+			g2D.setColor(
+					backgroundColor);
 			g2D.fillRect(
 					0,
 					0,
 					image.getWidth(),
 					image.getHeight());
-			g2D.setColor(save);
+			g2D.setColor(
+					save);
 		}
 		return image;
 	}
@@ -661,13 +777,15 @@ public class RasterUtils
 
 		final Graphics2D g2D = (Graphics2D) emptyImage.getGraphics();
 		final Color save = g2D.getColor();
-		g2D.setColor(backgroundColor);
+		g2D.setColor(
+				backgroundColor);
 		g2D.fillRect(
 				0,
 				0,
 				emptyImage.getWidth(),
 				emptyImage.getHeight());
-		g2D.setColor(save);
+		g2D.setColor(
+				save);
 
 		if (outputTransparentColor != null) {
 			emptyImage = new RenderedImageAdapter(
@@ -725,10 +843,13 @@ public class RasterUtils
 		final int[] bitsPerSample = new int[numBands];
 		for (int i = 0; i < numBands; i++) {
 			noDataValuesPerBand[i] = new double[] {
-				Double.valueOf(Double.NaN)
+				Double.valueOf(
+						Double.NaN)
 			};
-			backgroundValuesPerBand[i] = Double.valueOf(Double.NaN);
-			bitsPerSample[i] = DataBuffer.getDataTypeSize(DataBuffer.TYPE_DOUBLE);
+			backgroundValuesPerBand[i] = Double.valueOf(
+					Double.NaN);
+			bitsPerSample[i] = DataBuffer.getDataTypeSize(
+					DataBuffer.TYPE_DOUBLE);
 		}
 		final SampleModel sampleModel = createRasterTypeDouble(
 				numBands,
@@ -765,7 +886,8 @@ public class RasterUtils
 			final double southLat,
 			final double northLat,
 			final WritableRaster raster ) {
-		final GridCoverageFactory gcf = CoverageFactoryFinder.getGridCoverageFactory(null);
+		final GridCoverageFactory gcf = CoverageFactoryFinder.getGridCoverageFactory(
+				null);
 		Envelope mapExtent;
 		try {
 			mapExtent = new ReferencedEnvelope(
@@ -803,7 +925,8 @@ public class RasterUtils
 			final double[] maxPerBand,
 			final String[] namePerBand,
 			final WritableRaster raster ) {
-		final GridCoverageFactory gcf = CoverageFactoryFinder.getGridCoverageFactory(null);
+		final GridCoverageFactory gcf = CoverageFactoryFinder.getGridCoverageFactory(
+				null);
 		Envelope mapExtent;
 		try {
 			mapExtent = new ReferencedEnvelope(
@@ -847,7 +970,7 @@ public class RasterUtils
 	 * dimensions for the data backing the given iterator. Particularly, it was
 	 * desirable to be able to provide the name per band which was not provided
 	 * in the original.
-	 * 
+	 *
 	 * @param name
 	 *            The name for each band of the data (e.g. "Elevation").
 	 * @param model
@@ -895,11 +1018,11 @@ public class RasterUtils
 		}
 		/*
 		 * Arguments are know to be valids. We now need to compute two ranges:
-		 * 
+		 *
 		 * STEP 1: Range of target (sample) values. This is computed in the
 		 * following block. STEP 2: Range of source (geophysics) values. It will
 		 * be computed one block later.
-		 * 
+		 *
 		 * The target (sample) values will typically range from 0 to 255 or 0 to
 		 * 65535, but the general case is handled as well. If the source
 		 * (geophysics) raster uses floating point numbers, then a "nodata"
@@ -910,7 +1033,8 @@ public class RasterUtils
 		final SampleDimensionType sourceType = TypeMap.getSampleDimensionType(
 				model,
 				0);
-		final boolean sourceIsFloat = TypeMap.isFloatingPoint(sourceType);
+		final boolean sourceIsFloat = TypeMap.isFloatingPoint(
+				sourceType);
 		SampleDimensionType targetType = null;
 		if (targetType == null) {
 			// Default to TYPE_BYTE for floating point images only; otherwise
@@ -918,8 +1042,10 @@ public class RasterUtils
 			targetType = sourceIsFloat ? SampleDimensionType.UNSIGNED_8BITS : sourceType;
 		}
 		// Default setting: no scaling
-		final boolean targetIsFloat = TypeMap.isFloatingPoint(targetType);
-		NumberRange targetRange = TypeMap.getRange(targetType);
+		final boolean targetIsFloat = TypeMap.isFloatingPoint(
+				targetType);
+		NumberRange targetRange = TypeMap.getRange(
+				targetType);
 		Category[] categories = new Category[1];
 		final boolean needScaling;
 		if (targetIsFloat) {
@@ -930,16 +1056,20 @@ public class RasterUtils
 			// Always rescale for "float to integer" conversions. In addition,
 			// Use 0 value as a "no data" category for unsigned data type only.
 			needScaling = true;
-			if (!TypeMap.isSigned(targetType)) {
+			if (!TypeMap.isSigned(
+					targetType)) {
 				categories = new Category[2];
 				categories[1] = Category.NODATA;
-				targetRange = TypeMap.getPositiveRange(targetType);
+				targetRange = TypeMap.getPositiveRange(
+						targetType);
 			}
 		}
 		else {
 			// In "integer to integer" conversions, rescale only if
 			// the target range is smaller than the source range.
-			needScaling = !targetRange.contains(TypeMap.getRange(sourceType));
+			needScaling = !targetRange.contains(
+					TypeMap.getRange(
+							sourceType));
 		}
 
 		/*

@@ -78,7 +78,8 @@ public class KDERasterResizeIT
 	@Test
 	public void testKDEAndRasterResize()
 			throws Exception {
-		TestUtils.deleteAll(inputDataStorePluginOptions);
+		TestUtils.deleteAll(
+				inputDataStorePluginOptions);
 		TestUtils.testLocalIngest(
 				inputDataStorePluginOptions,
 				DimensionalityType.SPATIAL,
@@ -89,9 +90,12 @@ public class KDERasterResizeIT
 		final double decimalDegreesPerCellMinLevel = 180.0 / Math.pow(
 				2,
 				BASE_MIN_LEVEL);
-		final double cellOriginXMinLevel = Math.round(TARGET_MIN_LON / decimalDegreesPerCellMinLevel);
-		final double cellOriginYMinLevel = Math.round(TARGET_MIN_LAT / decimalDegreesPerCellMinLevel);
-		final double numCellsMinLevel = Math.round(TARGET_DECIMAL_DEGREES_SIZE / decimalDegreesPerCellMinLevel);
+		final double cellOriginXMinLevel = Math.round(
+				TARGET_MIN_LON / decimalDegreesPerCellMinLevel);
+		final double cellOriginYMinLevel = Math.round(
+				TARGET_MIN_LAT / decimalDegreesPerCellMinLevel);
+		final double numCellsMinLevel = Math.round(
+				TARGET_DECIMAL_DEGREES_SIZE / decimalDegreesPerCellMinLevel);
 		final GeneralEnvelope queryEnvelope = new GeneralEnvelope(
 				new double[] {
 					// this is exactly on a tile boundary, so there will be no
@@ -117,8 +121,10 @@ public class KDERasterResizeIT
 					null,
 					null);
 
-			command.setInputStoreOptions(inputDataStorePluginOptions);
-			command.setOutputStoreOptions(outputDataStorePluginOptions);
+			command.setInputStoreOptions(
+					inputDataStorePluginOptions);
+			command.setOutputStoreOptions(
+					outputDataStorePluginOptions);
 
 			command.getKdeOptions().setFeatureType(
 					KDE_FEATURE_TYPE_NAME);
@@ -142,7 +148,8 @@ public class KDERasterResizeIT
 							i));
 
 			ToolRunner.run(
-					command.createRunner(new ManualOperationParams()),
+					command.createRunner(
+							new ManualOperationParams()),
 					new String[] {});
 		}
 		final int numLevels = (BASE_MAX_LEVEL - BASE_MIN_LEVEL) + 1;
@@ -172,8 +179,10 @@ public class KDERasterResizeIT
 					null,
 					null);
 
-			command.setInputStoreOptions(outputDataStorePluginOptions);
-			command.setOutputStoreOptions(outputDataStorePluginOptions);
+			command.setInputStoreOptions(
+					outputDataStorePluginOptions);
+			command.setOutputStoreOptions(
+					outputDataStorePluginOptions);
 
 			command.getOptions().setInputCoverageName(
 					originalTileSizeCoverageName);
@@ -195,7 +204,8 @@ public class KDERasterResizeIT
 							MAX_TILE_SIZE_POWER_OF_2 - i));
 
 			ToolRunner.run(
-					command.createRunner(new ManualOperationParams()),
+					command.createRunner(
+							new ManualOperationParams()),
 					new String[] {});
 		}
 
@@ -223,29 +233,39 @@ public class KDERasterResizeIT
 			double[][][] expectedResults )
 			throws Exception {
 		final StringBuilder str = new StringBuilder(
-				StoreFactoryOptions.GEOWAVE_NAMESPACE_OPTION).append(
-				"=").append(
-				TEST_COVERAGE_NAMESPACE).append(
-				";equalizeHistogramOverride=false;interpolationOverride=").append(
-				Interpolation.INTERP_NEAREST);
+				StoreFactoryOptions.GEOWAVE_NAMESPACE_OPTION)
+						.append(
+								"=")
+						.append(
+								TEST_COVERAGE_NAMESPACE)
+						.append(
+								";equalizeHistogramOverride=false;interpolationOverride=")
+						.append(
+								Interpolation.INTERP_NEAREST);
 
 		final Map<String, String> options = outputDataStorePluginOptions.getFactoryOptionsAsMap();
 
 		for (final Entry<String, String> entry : options.entrySet()) {
 			if (!entry.getKey().equals(
 					StoreFactoryOptions.GEOWAVE_NAMESPACE_OPTION)) {
-				str.append(
-						";").append(
-						entry.getKey()).append(
-						"=").append(
-						entry.getValue());
+				str
+						.append(
+								";")
+						.append(
+								entry.getKey())
+						.append(
+								"=")
+						.append(
+								entry.getValue());
 			}
 		}
 
 		final GeoWaveRasterReader reader = new GeoWaveRasterReader(
-				GeoWaveRasterConfig.readFromConfigParams(str.toString()));
+				GeoWaveRasterConfig.readFromConfigParams(
+						str.toString()));
 
-		queryEnvelope.setCoordinateReferenceSystem(GeoWaveGTRasterFormat.DEFAULT_CRS);
+		queryEnvelope.setCoordinateReferenceSystem(
+				GeoWaveGTRasterFormat.DEFAULT_CRS);
 		final Raster[] rasters = new Raster[numCoverages];
 		int coverageCount = 0;
 		for (int i = MIN_TILE_SIZE_POWER_OF_2; i <= MAX_TILE_SIZE_POWER_OF_2; i += INCREMENT) {
@@ -254,6 +274,7 @@ public class KDERasterResizeIT
 					tileSizeCoverageName,
 					pixelDimensions,
 					queryEnvelope,
+					null,
 					null,
 					null);
 			final RenderedImage image = gridCoverage.getRenderedImage();

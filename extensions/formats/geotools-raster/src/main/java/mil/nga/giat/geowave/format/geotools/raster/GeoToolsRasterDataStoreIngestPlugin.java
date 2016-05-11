@@ -9,6 +9,13 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.log4j.Logger;
+import org.geotools.coverage.grid.GridCoverage2D;
+import org.geotools.coverage.grid.io.AbstractGridFormat;
+import org.geotools.coverage.grid.io.GridCoverage2DReader;
+import org.geotools.coverage.grid.io.GridFormatFinder;
+import org.opengis.coverage.grid.GridCoverage;
+
 import mil.nga.giat.geowave.adapter.raster.adapter.RasterDataAdapter;
 import mil.nga.giat.geowave.core.geotime.store.dimension.GeometryWrapper;
 import mil.nga.giat.geowave.core.index.ByteArrayId;
@@ -20,13 +27,6 @@ import mil.nga.giat.geowave.core.store.adapter.WritableDataAdapter;
 import mil.nga.giat.geowave.core.store.index.CommonIndexValue;
 import mil.nga.giat.geowave.core.store.index.PrimaryIndex;
 
-import org.apache.log4j.Logger;
-import org.geotools.coverage.grid.GridCoverage2D;
-import org.geotools.coverage.grid.io.AbstractGridFormat;
-import org.geotools.coverage.grid.io.GridCoverage2DReader;
-import org.geotools.coverage.grid.io.GridFormatFinder;
-import org.opengis.coverage.grid.GridCoverage;
-
 /**
  * This plugin is used for ingesting any GeoTools supported file data store from
  * a local file system directly into GeoWave as GeoTools' SimpleFeatures. It
@@ -37,7 +37,8 @@ import org.opengis.coverage.grid.GridCoverage;
 public class GeoToolsRasterDataStoreIngestPlugin implements
 		LocalFileIngestPlugin<GridCoverage>
 {
-	private final static Logger LOGGER = Logger.getLogger(GeoToolsRasterDataStoreIngestPlugin.class);
+	private final static Logger LOGGER = Logger.getLogger(
+			GeoToolsRasterDataStoreIngestPlugin.class);
 	private final RasterOptionProvider optionProvider;
 
 	public GeoToolsRasterDataStoreIngestPlugin() {
@@ -63,7 +64,8 @@ public class GeoToolsRasterDataStoreIngestPlugin implements
 	public boolean supportsFile(
 			final File file ) {
 
-		final AbstractGridFormat format = GridFormatFinder.findFormat(file);
+		final AbstractGridFormat format = GridFormatFinder.findFormat(
+				file);
 		// the null check is enough and we don't need to check the format
 		// accepts this file because the finder should have previously validated
 		// this
@@ -76,19 +78,24 @@ public class GeoToolsRasterDataStoreIngestPlugin implements
 			final Collection<ByteArrayId> primaryIndexIds,
 			final String globalVisibility ) {
 
-		final AbstractGridFormat format = GridFormatFinder.findFormat(input);
-		final GridCoverage2DReader reader = format.getReader(input);
+		final AbstractGridFormat format = GridFormatFinder.findFormat(
+				input);
+		final GridCoverage2DReader reader = format.getReader(
+				input);
 		if (reader == null) {
-			LOGGER.error("Unable to get reader instance, getReader returned null");
+			LOGGER.error(
+					"Unable to get reader instance, getReader returned null");
 			return new Wrapper(
 					Collections.emptyIterator());
 		}
 		try {
-			final GridCoverage2D coverage = reader.read(null);
+			final GridCoverage2D coverage = reader.read(
+					null);
 			if (coverage != null) {
 				final Map<String, String> metadata = new HashMap<String, String>();
 				final String coverageName = coverage.getName().toString();
-				final String[] mdNames = reader.getMetadataNames(coverageName);
+				final String[] mdNames = reader.getMetadataNames(
+						coverageName);
 				if ((mdNames != null) && (mdNames.length > 0)) {
 					for (final String mdName : mdNames) {
 						metadata.put(
@@ -99,16 +106,20 @@ public class GeoToolsRasterDataStoreIngestPlugin implements
 					}
 				}
 				final RasterDataAdapter adapter = new RasterDataAdapter(
-						input.getName(),
+						optionProvider.getCoverageName() != null ? optionProvider.getCoverageName() : input.getName(),
 						metadata,
 						coverage,
 						optionProvider.getTileSize(),
-						optionProvider.isBuildPyramid());
+						optionProvider.isBuildPyramid(),
+						optionProvider.isBuildHistogream(),
+						optionProvider.getNodata(
+								coverage.getNumSampleDimensions()));
 				final List<GeoWaveData<GridCoverage>> coverages = new ArrayList<GeoWaveData<GridCoverage>>();
-				coverages.add(new GeoWaveData<GridCoverage>(
-						adapter,
-						primaryIndexIds,
-						coverage));
+				coverages.add(
+						new GeoWaveData<GridCoverage>(
+								adapter,
+								primaryIndexIds,
+								coverage));
 				return new Wrapper(
 						coverages.iterator()) {
 
@@ -120,7 +131,8 @@ public class GeoToolsRasterDataStoreIngestPlugin implements
 				};
 			}
 			else {
-				LOGGER.warn("Null grid coverage from file '" + input.getAbsolutePath() + "' for discovered geotools format '" + format.getName() + "'");
+				LOGGER.warn(
+						"Null grid coverage from file '" + input.getAbsolutePath() + "' for discovered geotools format '" + format.getName() + "'");
 			}
 		}
 		catch (final IOException e) {

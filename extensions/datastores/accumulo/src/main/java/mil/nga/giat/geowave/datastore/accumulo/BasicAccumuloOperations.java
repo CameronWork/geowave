@@ -755,7 +755,7 @@ public class BasicAccumuloOperations implements
 	}
 
 	public static BasicAccumuloOperations createOperations(
-			AccumuloRequiredOptions options )
+			final AccumuloRequiredOptions options )
 			throws AccumuloException,
 			AccumuloSecurityException {
 		return new BasicAccumuloOperations(
