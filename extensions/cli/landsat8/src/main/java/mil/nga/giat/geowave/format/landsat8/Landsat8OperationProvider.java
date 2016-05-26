@@ -9,7 +9,9 @@ public class Landsat8OperationProvider implements
 		Landsat8Section.class,
 		Landsat8AnalyzeCommand.class,
 		Landsat8DownloadCommand.class,
-		Landsat8IngestCommand.class
+		Landsat8IngestCommand.class,
+		Landsat8IngestRasterCommand.class,
+		Landsat8IngestVectorCommand.class,
 	};
 
 	@Override

@@ -28,11 +28,8 @@ public class RasterOptionProvider implements
 	@Parameter(names = "--nodata", variableArity = true, description = "Optional parameter to set 'no data' values, if 1 value is giving it is applied for each band, if multiple are given then the first totalNoDataValues/totalBands are applied to the first band and so on, so each band can have multiple differing 'no data' values if needed", converter = DoubleConverter.class)
 	private final List<Double> nodata = new ArrayList<>();
 
-	// TODO implement the ability to separate bands
-	// @Parameter(names = "--separateBands", description = "Optional parameter
-	// to separate each band into its own coverage name. By default the coverage
-	// name will have '_Bn' appended to it where `n` is the band's index.")
-	// private boolean separateBands = false;
+	@Parameter(names = "--separateBands", description = "Optional parameter to separate each band into its own coverage name. By default the coverage name will have '_Bn' appended to it where `n` is the band's index.")
+	private final boolean separateBands = false;
 
 	public RasterOptionProvider() {}
 
@@ -42,6 +39,10 @@ public class RasterOptionProvider implements
 
 	public int getTileSize() {
 		return tileSize;
+	}
+
+	public boolean isSeparateBands() {
+		return separateBands;
 	}
 
 	public String getCoverageName() {

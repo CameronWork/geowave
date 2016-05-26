@@ -60,30 +60,24 @@ public class VectorIngestRunner extends
 			final File configFile = (File) params.getContext().get(
 					ConfigOptions.PROPERTIES_FILE_CONTEXT);
 
-			DataStorePluginOptions storeOptions = null;
-			DataStore store = null;
-			List<IndexPluginOptions> indexOptions = null;
 			// Attempt to load input store.
-			if (storeOptions == null) {
-				final StoreLoader inputStoreLoader = new StoreLoader(
-						inputStoreName);
-				if (!inputStoreLoader.loadFromConfig(configFile)) {
-					throw new ParameterException(
-							"Cannot find store name: " + inputStoreLoader.getStoreName());
-				}
-				storeOptions = inputStoreLoader.getDataStorePlugin();
-				store = storeOptions.createDataStore();
+			final StoreLoader inputStoreLoader = new StoreLoader(
+					inputStoreName);
+			if (!inputStoreLoader.loadFromConfig(configFile)) {
+				throw new ParameterException(
+						"Cannot find store name: " + inputStoreLoader.getStoreName());
 			}
-			// Load the Indexes
-			if (indexOptions == null) {
-				final IndexLoader indexLoader = new IndexLoader(
-						indexList);
-				if (!indexLoader.loadFromConfig(configFile)) {
-					throw new ParameterException(
-							"Cannot find index(s) by name: " + indexList);
-				}
-				indexOptions = indexLoader.getLoadedIndexes();
+			final DataStorePluginOptions storeOptions = inputStoreLoader.getDataStorePlugin();
+			final DataStore store = storeOptions.createDataStore();
+
+			// Load the Indices
+			final IndexLoader indexLoader = new IndexLoader(
+					indexList);
+			if (!indexLoader.loadFromConfig(configFile)) {
+				throw new ParameterException(
+						"Cannot find index(s) by name: " + indexList);
 			}
+			final List<IndexPluginOptions> indexOptions = indexLoader.getLoadedIndexes();
 
 			final PrimaryIndex[] indices = new PrimaryIndex[indexOptions.size()];
 			int i = 0;
@@ -96,7 +90,7 @@ public class VectorIngestRunner extends
 				}
 				indices[i++] = primaryIndex;
 			}
-			final SimpleFeatureType sceneType = SceneFeatureIterator.createFeatureType();
+			sceneType = SceneFeatureIterator.createFeatureType();
 			final FeatureDataAdapter sceneAdapter = new FeatureDataAdapter(
 					sceneType);
 			sceneWriter = store.createWriter(
@@ -148,6 +142,19 @@ public class VectorIngestRunner extends
 	protected void nextScene(
 			final SimpleFeature firstBandOfScene,
 			final AnalysisInfo analysisInfo ) {
+		writeScene(
+				sceneType,
+				firstBandOfScene,
+				sceneWriter);
+		super.nextScene(
+				firstBandOfScene,
+				analysisInfo);
+	}
+
+	public static void writeScene(
+			final SimpleFeatureType sceneType,
+			final SimpleFeature firstBandOfScene,
+			final IndexWriter sceneWriter ) {
 		final SimpleFeatureBuilder bldr = new SimpleFeatureBuilder(
 				sceneType);
 		String fid = null;
@@ -167,9 +174,5 @@ public class VectorIngestRunner extends
 		if (fid != null) {
 			sceneWriter.write(bldr.buildFeature(fid));
 		}
-		super.nextScene(
-				firstBandOfScene,
-				analysisInfo);
-
 	}
 }

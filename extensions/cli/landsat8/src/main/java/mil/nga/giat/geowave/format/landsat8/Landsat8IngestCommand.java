@@ -32,6 +32,9 @@ public class Landsat8IngestCommand extends
 	@ParametersDelegate
 	protected Landsat8RasterIngestCommandLineOptions ingestOptions = new Landsat8RasterIngestCommandLineOptions();
 
+	@ParametersDelegate
+	protected VectorOverrideCommandLineOptions vectorOverrideOptions = new VectorOverrideCommandLineOptions();
+
 	public Landsat8IngestCommand() {}
 
 	@Override
@@ -39,14 +42,14 @@ public class Landsat8IngestCommand extends
 			final OperationParams params )
 			throws Exception {
 		JAIExt.initJAIEXT();
-		// TODO figure out how to tie raster and vector ingest together
-		// final RasterIngestRunner runner = new RasterIngestRunner(
-		// analyzeOptions,
-		// downloadOptions,
-		// ingestOptions,
-		// parameters);
-		// runner.runInternal(
-		// params);
+
+		final IngestRunner runner = new IngestRunner(
+				analyzeOptions,
+				downloadOptions,
+				ingestOptions,
+				vectorOverrideOptions,
+				parameters);
+		runner.runInternal(params);
 	}
 
 }

@@ -729,7 +729,7 @@ public class RasterDataAdapter implements
 							}
 						}
 						final GridCoverage resampledCoverage = (GridCoverage) RasterUtils
-								.getResampleOperations()
+								.getCoverageOperations()
 								.resample(
 										originalData,
 										GeoWaveGTRasterFormat.DEFAULT_CRS,

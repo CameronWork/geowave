@@ -11,7 +11,6 @@ import mil.nga.giat.geowave.format.landsat8.Landsat8BandConverterSpi;
 
 import org.geotools.coverage.grid.GridCoverage2D;
 import org.geotools.coverage.grid.GridCoverageFactory;
-import org.opengis.coverage.grid.GridCoverage;
 import org.opengis.feature.simple.SimpleFeature;
 
 public class QABandToIceMaskConverter implements

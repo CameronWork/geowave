@@ -833,7 +833,7 @@ public class GeoWaveRasterReader extends
 
 		GridCoverage2D result = null;
 		LOGGER.info("Image reprojection necessary");
-		result = (GridCoverage2D) Operations.DEFAULT.resample(
+		result = (GridCoverage2D) RasterUtils.getCoverageOperations().resample(
 				coverage,
 				state.getRequestedEnvelope().getCoordinateReferenceSystem());
 

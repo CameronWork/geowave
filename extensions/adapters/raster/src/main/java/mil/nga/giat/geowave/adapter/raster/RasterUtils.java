@@ -711,7 +711,7 @@ public class RasterUtils
 				renderingHints);
 	}
 
-	public static synchronized Operations getResampleOperations() {
+	public static synchronized Operations getCoverageOperations() {
 		if (resampleOperations == null) {
 			resampleOperations = new Operations(
 					DEFAULT_RENDERING_HINTS);

@@ -4,30 +4,43 @@ import java.io.File;
 import java.io.IOException;
 import java.io.StringReader;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.ServiceLoader;
 
 import org.geotools.coverage.grid.GridCoverage2D;
-import org.geotools.gce.geotiff.GeoTiffReader;
+import org.geotools.coverage.processing.AbstractOperation;
+import org.geotools.coverage.processing.CoverageProcessor;
+import org.geotools.coverage.processing.operation.BandMerge;
+import org.geotools.coverage.processing.operation.BandMerge.TransformList;
+import org.geotools.geometry.jts.ReferencedEnvelope;
 import org.opengis.feature.simple.SimpleFeature;
 import org.opengis.feature.simple.SimpleFeatureType;
 import org.opengis.feature.type.AttributeDescriptor;
+import org.opengis.filter.Filter;
+import org.opengis.parameter.ParameterValueGroup;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.ui.freemarker.FreeMarkerTemplateUtils;
 
 import com.beust.jcommander.ParameterException;
+import com.vividsolutions.jts.geom.Geometry;
 
 import freemarker.template.Configuration;
 import freemarker.template.Template;
 import freemarker.template.TemplateException;
+import mil.nga.giat.geowave.adapter.raster.RasterUtils;
 import mil.nga.giat.geowave.adapter.raster.adapter.RasterDataAdapter;
 import mil.nga.giat.geowave.adapter.raster.adapter.merge.nodata.NoDataMergeStrategy;
+import mil.nga.giat.geowave.adapter.vector.plugin.ExtractGeometryFilterVisitor;
 import mil.nga.giat.geowave.core.cli.api.OperationParams;
 import mil.nga.giat.geowave.core.cli.operations.config.options.ConfigOptions;
 import mil.nga.giat.geowave.core.store.DataStore;
 import mil.nga.giat.geowave.core.store.IndexWriter;
+import mil.nga.giat.geowave.core.store.adapter.exceptions.MismatchedIndexToAdapterMapping;
 import mil.nga.giat.geowave.core.store.index.PrimaryIndex;
 import mil.nga.giat.geowave.core.store.operations.remote.options.DataStorePluginOptions;
 import mil.nga.giat.geowave.core.store.operations.remote.options.IndexLoader;
@@ -39,20 +52,16 @@ public class RasterIngestRunner extends
 {
 
 	private final static Logger LOGGER = LoggerFactory.getLogger(RasterIngestRunner.class);
-	private static final int LONGITUDE_BITS = 27;
-	private static final int LATITUDE_BITS = 27;
-	private static final int TIME_BITS = 8;
+	private static Map<String, Landsat8BandConverterSpi> registeredBandConverters = null;
 	protected final List<String> parameters;
 	protected Landsat8RasterIngestCommandLineOptions ingestOptions;
-	List<SimpleFeature> lastSceneBands = new ArrayList<SimpleFeature>();
-	private Template coverageNameTemplate;
-	private final Map<String, IndexWriter> writerCache = new HashMap<String, IndexWriter>();;
-	private final Map<String, RasterDataAdapter> adapterCache = new HashMap<String, RasterDataAdapter>();
+	protected List<SimpleFeature> lastSceneBands = new ArrayList<SimpleFeature>();
+	protected Template coverageNameTemplate;
+	protected final Map<String, IndexWriter> writerCache = new HashMap<String, IndexWriter>();
 
-	private DataStorePluginOptions storeOptions = null;
-	private DataStore store = null;
+	protected String[] bandsIngested;
+	protected DataStore store = null;
 	PrimaryIndex[] indices = null;
-	private List<IndexPluginOptions> indexOptions = null;
 
 	public RasterIngestRunner(
 			final Landsat8BasicCommandLineOptions analyzeOptions,
@@ -66,91 +75,63 @@ public class RasterIngestRunner extends
 		this.parameters = parameters;
 	}
 
+	protected void processParameters(
+			final OperationParams params )
+			throws Exception {
+		// Ensure we have all the required arguments
+		if (parameters.size() != 2) {
+			throw new ParameterException(
+					"Requires arguments: <storename> <comma delimited index/group list>");
+		}
+		final String inputStoreName = parameters.get(0);
+		final String indexList = parameters.get(1);
+
+		// Config file
+		final File configFile = (File) params.getContext().get(
+				ConfigOptions.PROPERTIES_FILE_CONTEXT);
+		// Attempt to load input store.
+		final StoreLoader inputStoreLoader = new StoreLoader(
+				inputStoreName);
+		if (!inputStoreLoader.loadFromConfig(configFile)) {
+			throw new ParameterException(
+					"Cannot find store name: " + inputStoreLoader.getStoreName());
+		}
+		final DataStorePluginOptions storeOptions = inputStoreLoader.getDataStorePlugin();
+		store = storeOptions.createDataStore();
+
+		// Load the Indices
+		final IndexLoader indexLoader = new IndexLoader(
+				indexList);
+		if (!indexLoader.loadFromConfig(configFile)) {
+			throw new ParameterException(
+					"Cannot find index(s) by name: " + indexList);
+		}
+		final List<IndexPluginOptions> indexOptions = indexLoader.getLoadedIndexes();
+
+		indices = new PrimaryIndex[indexOptions.size()];
+		int i = 0;
+		for (final IndexPluginOptions dimensionType : indexOptions) {
+			final PrimaryIndex primaryIndex = dimensionType.createPrimaryIndex();
+			if (primaryIndex == null) {
+				LOGGER.error("Could not get index instance, getIndex() returned null;");
+				throw new IOException(
+						"Could not get index instance, getIndex() returned null");
+			}
+			indices[i++] = primaryIndex;
+		}
+		coverageNameTemplate = new Template(
+				"name",
+				new StringReader(
+						ingestOptions.getCoverageName()),
+				new Configuration());
+	}
+
 	@Override
 	protected void runInternal(
 			final OperationParams params )
 			throws Exception {
 		try {
-			// Ensure we have all the required arguments
-			if (parameters.size() != 2) {
-				throw new ParameterException(
-						"Requires arguments: <storename> <comma delimited index/group list>");
-			}
-			final String inputStoreName = parameters.get(0);
-			final String indexList = parameters.get(1);
-
-			// Config file
-			final File configFile = (File) params.getContext().get(
-					ConfigOptions.PROPERTIES_FILE_CONTEXT);
-
-			// Attempt to load input store.
-			if (storeOptions == null) {
-				final StoreLoader inputStoreLoader = new StoreLoader(
-						inputStoreName);
-				if (!inputStoreLoader.loadFromConfig(configFile)) {
-					throw new ParameterException(
-							"Cannot find store name: " + inputStoreLoader.getStoreName());
-				}
-				storeOptions = inputStoreLoader.getDataStorePlugin();
-				store = storeOptions.createDataStore();
-			}
-			// Load the Indexes
-			if (indexOptions == null) {
-				final IndexLoader indexLoader = new IndexLoader(
-						indexList);
-				if (!indexLoader.loadFromConfig(configFile)) {
-					throw new ParameterException(
-							"Cannot find index(s) by name: " + indexList);
-				}
-				indexOptions = indexLoader.getLoadedIndexes();
-			}
-
-			indices = new PrimaryIndex[indexOptions.size()];
-			int i = 0;
-			for (final IndexPluginOptions dimensionType : indexOptions) {
-				final PrimaryIndex primaryIndex = dimensionType.createPrimaryIndex();
-				if (primaryIndex == null) {
-					LOGGER.error("Could not get index instance, getIndex() returned null;");
-					throw new IOException(
-							"Could not get index instance, getIndex() returned null");
-				}
-				indices[i++] = primaryIndex;
-			}
-			// final TimeDefinition timeDefinition = new TimeDefinition(
-			// new Landsat8TemporalBinningStrategy());
-			// final Index index = accumuloOptions.getIndex(
-			// new Index[] {
-			// IndexType.SPATIAL_RASTER.createDefaultIndex(),
-			// new CustomIdIndex(
-			// TieredSFCIndexFactory.createEqualIntervalPrecisionTieredStrategy(
-			// new NumericDimensionDefinition[] {
-			// new LatitudeDefinition(),
-			// new LongitudeDefinition(),
-			// timeDefinition
-			// },
-			// new int[] {
-			// LONGITUDE_BITS,
-			// LATITUDE_BITS,
-			// TIME_BITS
-			// },
-			// SFCType.HILBERT),
-			// new BasicIndexModel(
-			// new DimensionField[] {
-			// new LongitudeField(),
-			// new LatitudeField(),
-			// new TimeField(
-			// timeDefinition)
-			// }),
-			// new ByteArrayId(
-			// "SpatialTemporalLandsat8Index"))
-			// });
-			// writer = geowaveDataStore.createIndexWriter(
-			// index);
-			coverageNameTemplate = new Template(
-					"name",
-					new StringReader(
-							ingestOptions.getCoverageName()),
-					new Configuration());
+			processParameters(params);
 			super.runInternal(params);
 		}
 		finally {
@@ -169,17 +150,10 @@ public class RasterIngestRunner extends
 		}
 	}
 
-	@Override
-	protected void nextBand(
-			final SimpleFeature band,
-			final AnalysisInfo analysisInfo ) {
-		super.nextBand(
-				band,
-				analysisInfo);
-		// if (ingestOptions.isCoveragePerBand()) {
-		// ingest this band
-		// convert the simplefeature into a map to resolve the coverage name
-		// using a user supplied freemarker template
+	protected BandData getBandData(
+			final SimpleFeature band )
+			throws IOException,
+			TemplateException {
 		final Map<String, Object> model = new HashMap<String, Object>();
 		final SimpleFeatureType type = band.getFeatureType();
 		for (final AttributeDescriptor attr : type.getAttributeDescriptors()) {
@@ -191,66 +165,127 @@ public class RasterIngestRunner extends
 						attrValue);
 			}
 		}
-		try {
-			final String coverageName = FreeMarkerTemplateUtils.processTemplateIntoString(
-					coverageNameTemplate,
-					model);
-			final File geotiffFile = DownloadRunner.getDownloadFile(
-					band,
-					landsatOptions.getWorkspaceDir());
-			final GDALGeoTiffReader reader = new GDALGeoTiffReader(
-					geotiffFile);
-			final GridCoverage2D coverage = reader.read(null);
-			RasterDataAdapter adapter = adapterCache.get(coverageName);
-			IndexWriter writer = writerCache.get(coverageName);
-			// TODO use converter nextCov = Landsat8BandConverterSpi
-			final GridCoverage2D nextCov = coverage;
-			if (adapter == null) {
-				final Map<String, String> metadata = new HashMap<String, String>();
-				final String[] mdNames = reader.getMetadataNames();
-				if ((mdNames != null) && (mdNames.length > 0)) {
-					for (final String mdName : mdNames) {
-						metadata.put(
-								mdName,
-								reader.getMetadataValue(mdName));
-					}
-				}
-				adapter = new RasterDataAdapter(
+		final String coverageName = FreeMarkerTemplateUtils.processTemplateIntoString(
+				coverageNameTemplate,
+				model);
+		final File geotiffFile = DownloadRunner.getDownloadFile(
+				band,
+				landsatOptions.getWorkspaceDir());
+		final GDALGeoTiffReader reader = new GDALGeoTiffReader(
+				geotiffFile);
+		GridCoverage2D coverage = reader.read(null);
+		reader.dispose();
+		if ((ingestOptions.getCoverageName() != null) && !ingestOptions.getCoverageName().trim().isEmpty()) {
+			// a converter was supplied, attempt to use it
+			final Landsat8BandConverterSpi converter = getConverter(ingestOptions.getCoverageName());
+			if (converter != null) {
+				coverage = converter.convert(
 						coverageName,
-						metadata,
-						nextCov,
-						ingestOptions.getTileSize(),
-						ingestOptions.isCreatePyramid(),
-						ingestOptions.isCreateHistogram(),
-						new double[][] {
-							new double[] {
-								0
-							}
-						},
-						new NoDataMergeStrategy());
-				adapterCache.put(
-						coverageName,
-						adapter);
-				writer = store.createWriter(
-						adapter,
-						indices);
-				writerCache.put(
-						coverageName,
-						writer);
+						coverage,
+						band);
 			}
-			writer.write(nextCov);
 		}
-		catch (IOException | TemplateException e) {
-			LOGGER
-					.error(
-							"Unable to ingest band " + band.getID()
-									+ " because coverage name cannot be resolved from template",
-							e);
+		if (ingestOptions.isSubsample()) {
+			coverage = (GridCoverage2D) RasterUtils.getCoverageOperations().filteredSubsample(
+					coverage,
+					ingestOptions.getScale(),
+					ingestOptions.getScale(),
+					null);
 		}
-		// }
-		// else {
-		// lastSceneBands.add(band);
-		// }
+		// its unclear whether cropping should be done first or subsampling
+		if (ingestOptions.isCropToSpatialConstraint()) {
+			boolean cropped = false;
+			final Filter filter = landsatOptions.getCqlFilter();
+			if (filter != null) {
+				final Geometry geometry = ExtractGeometryFilterVisitor.getConstraints(
+						filter,
+						coverage.getCoordinateReferenceSystem());
+				if (geometry != null) {
+					coverage = (GridCoverage2D) RasterUtils.getCoverageOperations().crop(
+							coverage,
+							new ReferencedEnvelope(
+									geometry.getEnvelopeInternal(),
+									coverage.getCoordinateReferenceSystem()));
+					cropped = true;
+				}
+				if (!cropped) {
+					LOGGER
+							.warn("Option to crop spatially was set but no spatial constraints were provided in CQL expression");
+				}
+			}
+		}
+		return new BandData(
+				coverageName,
+				coverage,
+				reader,
+				geotiffFile);
+	}
+
+	@Override
+	protected void nextBand(
+			final SimpleFeature band,
+			final AnalysisInfo analysisInfo ) {
+		super.nextBand(
+				band,
+				analysisInfo);
+		if (ingestOptions.isCoveragePerBand()) {
+			// ingest this band
+			// convert the simplefeature into a map to resolve the coverage name
+			// using a user supplied freemarker template
+
+			try {
+				final BandData bandData = getBandData(band);
+				final GridCoverage2D coverage = bandData.coverage;
+				final String coverageName = bandData.name;
+				final GDALGeoTiffReader reader = bandData.reader;
+				IndexWriter writer = writerCache.get(coverageName);
+				final GridCoverage2D nextCov = coverage;
+				if (writer == null) {
+					final Map<String, String> metadata = new HashMap<String, String>();
+					final String[] mdNames = reader.getMetadataNames();
+					if ((mdNames != null) && (mdNames.length > 0)) {
+						for (final String mdName : mdNames) {
+							metadata.put(
+									mdName,
+									reader.getMetadataValue(mdName));
+						}
+					}
+					final RasterDataAdapter adapter = new RasterDataAdapter(
+							coverageName,
+							metadata,
+							nextCov,
+							ingestOptions.getTileSize(),
+							ingestOptions.isCreatePyramid(),
+							ingestOptions.isCreateHistogram(),
+							new double[][] {
+								new double[] {
+									1
+								}
+							},
+							new NoDataMergeStrategy());
+					writer = store.createWriter(
+							adapter,
+							indices);
+					writerCache.put(
+							coverageName,
+							writer);
+				}
+				writer.write(nextCov);
+				if (!ingestOptions.isRetainImages()) {
+					bandData.geotiffFile.delete();
+				}
+			}
+			catch (IOException | TemplateException e) {
+				LOGGER.error(
+						"Unable to ingest band " + band.getID()
+								+ " because coverage name cannot be resolved from template",
+						e);
+			}
+		}
+		else {
+			lastSceneBands.add(band);
+		}
+
 	}
 
 	@Override
@@ -271,18 +306,183 @@ public class RasterIngestRunner extends
 	}
 
 	protected void processLastScene() {
-		// if (!ingestOptions.isCoveragePerBand()) {
-		// if (!lastSceneBands.isEmpty()) {
-		// TODO ingest as single image for all bands
-		// do we need to capture all possible permutations of bands (ie.
-		// this scene may not contain all bands for this coverage)?
+		if (!ingestOptions.isCoveragePerBand()) {
+			// ingest as single image for all bands
+			if (!lastSceneBands.isEmpty()) {
+				final String[] thisSceneBands = new String[lastSceneBands.size()];
+				int i = 0;
+				final List<BandData> sceneData = new ArrayList<>(
+						lastSceneBands.size());
+				IndexWriter writer;
+				// get coverage info, ensuring that all coverage names are the
+				// same
+				String coverageName = null;
+				for (final SimpleFeature band : lastSceneBands) {
+					BandData bandData;
+					try {
+						bandData = getBandData(band);
+						if (coverageName == null) {
+							coverageName = bandData.name;
+						}
+						else if (!coverageName.equals(bandData.name)) {
+							LOGGER.warn("Unable to use band data as the band coverage name '" + bandData.name
+									+ "' is unexpectedly different from default name '" + coverageName + "'");
+						}
+						sceneData.add(bandData);
+						thisSceneBands[i++] = band.getAttribute(
+								BandFeatureIterator.BAND_ATTRIBUTE_NAME).toString();
+					}
+					catch (IOException | TemplateException e) {
+						LOGGER.warn(
+								"Unable to read band data",
+								e);
+					}
 
-		// also we need to consider supersampling if the panchromatic
-		// band (B8) is provided, because it will be twice the
-		// resolution of the other bands
+				}
+				if (coverageName == null) {
+					LOGGER.warn("No valid bands found for scene");
+					lastSceneBands.clear();
+					return;
+				}
+				final CoverageProcessor processor = CoverageProcessor.getInstance();
+				final AbstractOperation op = (AbstractOperation) processor.getOperation("BandMerge");
+				final ParameterValueGroup params = op.getParameters();
+				final List<GridCoverage2D> sources = new ArrayList<>();
+				for (final BandData b : sceneData) {
+					sources.add(b.coverage);
+				}
+				params.parameter(
+						"Sources").setValue(
+						sources);
+				params.parameter(
+						BandMerge.TRANSFORM_CHOICE).setValue(
+						TransformList.FIRST.toString());
 
-		// }
-		// lastSceneBands.clear();
-		// }
+				final GridCoverage2D mergedCoverage = (GridCoverage2D) op.doOperation(
+						params,
+						null);
+				if (bandsIngested == null) {
+					// this means this is the first scene
+					// setup adapter and other required info
+					final Map<String, String> metadata = new HashMap<String, String>();
+					// merge metadata from all readers
+					for (final BandData b : sceneData) {
+						final String[] mdNames = b.reader.getMetadataNames();
+						if ((mdNames != null) && (mdNames.length > 0)) {
+							for (final String mdName : mdNames) {
+								metadata.put(
+										mdName,
+										b.reader.getMetadataValue(mdName));
+							}
+						}
+					}
+					try {
+						final RasterDataAdapter adapter = new RasterDataAdapter(
+								coverageName,
+								metadata,
+								mergedCoverage,
+								ingestOptions.getTileSize(),
+								ingestOptions.isCreatePyramid(),
+								ingestOptions.isCreateHistogram(),
+								new double[][] {
+									new double[] {
+										1
+									}
+								},
+								new NoDataMergeStrategy());
+						writer = store.createWriter(
+								adapter,
+								indices);
+						writerCache.put(
+								coverageName,
+								writer);
+						bandsIngested = thisSceneBands;
+					}
+					catch (final MismatchedIndexToAdapterMapping e) {
+						LOGGER.warn(
+								"Unable to create index writer for coverage '" + coverageName + "'.  Skipping scene '"
+										+ lastSceneBands.get(
+												0).getAttribute(
+												SceneFeatureIterator.ENTITY_ID_ATTRIBUTE_NAME) + "'.",
+								e);
+						lastSceneBands.clear();
+						return;
+					}
+				}
+				else if (!Arrays.equals(
+						bandsIngested,
+						thisSceneBands)) {
+					LOGGER.warn("The bands in this scene ('" + Arrays.toString(thisSceneBands)
+							+ "') differ from the previous scene ('" + Arrays.toString(bandsIngested)
+							+ "').  To merge bands all scenes must use the same bands.  Skipping scene'"
+							+ lastSceneBands.get(
+									0).getAttribute(
+									SceneFeatureIterator.ENTITY_ID_ATTRIBUTE_NAME) + "'.");
+					lastSceneBands.clear();
+					return;
+				}
+				else {
+					writer = writerCache.get(coverageName);
+					if (writer == null) {
+						LOGGER.warn("Unable to find writer for coverage '" + coverageName + "'.  Skipping scene'"
+								+ lastSceneBands.get(
+										0).getAttribute(
+										SceneFeatureIterator.ENTITY_ID_ATTRIBUTE_NAME) + "'.");
+						lastSceneBands.clear();
+						return;
+					}
+				}
+				writer.write(mergedCoverage);
+				lastSceneBands.clear();
+
+				for (final BandData b : sceneData) {
+					b.geotiffFile.delete();
+				}
+			}
+		}
+	}
+
+	public Landsat8BandConverterSpi getConverter(
+			final String converterName ) {
+		final Landsat8BandConverterSpi converter = getRegisteredConverters().get(
+				converterName);
+		if (converter == null) {
+			LOGGER.warn("no landsat8 converter registered with name '" + converterName + "'");
+		}
+		return converter;
+	}
+
+	public synchronized Map<String, Landsat8BandConverterSpi> getRegisteredConverters() {
+		if (registeredBandConverters == null) {
+			final ServiceLoader<Landsat8BandConverterSpi> converters = ServiceLoader
+					.load(Landsat8BandConverterSpi.class);
+			final Iterator<Landsat8BandConverterSpi> it = converters.iterator();
+			while (it.hasNext()) {
+				final Landsat8BandConverterSpi converter = it.next();
+				registeredBandConverters.put(
+						converter.getName(),
+						converter);
+			}
+		}
+		return registeredBandConverters;
+	}
+
+	private static class BandData
+	{
+		private final String name;
+		private final GridCoverage2D coverage;
+		private final GDALGeoTiffReader reader;
+		private final File geotiffFile;
+
+		public BandData(
+				final String name,
+				final GridCoverage2D coverage,
+				final GDALGeoTiffReader reader,
+				final File geotiffFile ) {
+			this.name = name;
+			this.coverage = coverage;
+			this.reader = reader;
+			this.geotiffFile = geotiffFile;
+		}
 	}
 }

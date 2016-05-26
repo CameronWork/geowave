@@ -15,9 +15,9 @@ public class Landsat8BasicCommandLineOptions
 		"-ws",
 		"--workspaceDir"
 	}, description = "A local directory to write temporary files needed for landsat 8 ingest. Default is <TEMP_DIR>/landsat8")
-	private final String workspaceDir = DEFAULT_WORKSPACE_DIR;
-	@Parameter(names = "--cql", description = "An optional CQL expression to filter the ingested imagery. The feature type for the expression has the following attributes: shape (Geometry), acquisitionDate (Date), cloudCover (double), processingLevel (String), path (int), row (int) and the feature ID is entityId for the scene", converter = ConvertCQLStrToFilterConverter.class)
-	private final FilterParameter cqlFilter = new FilterParameter(
+	private String workspaceDir = DEFAULT_WORKSPACE_DIR;
+	@Parameter(names = "--cql", description = "An optional CQL expression to filter the ingested imagery. The feature type for the expression has the following attributes: shape (Geometry), acquisitionDate (Date), cloudCover (double), processingLevel (String), path (int), row (int) and the feature ID is entityId for the scene.  Additionally attributes of the individuals band can be used such as band (String), sizeMB (double), and bandDownloadUrl (String)", converter = ConvertCQLStrToFilterConverter.class)
+	private FilterParameter cqlFilter = new FilterParameter(
 			null,
 			null);
 	@Parameter(names = "--sincelastrun", description = "An option to check the scenes list from the workspace and if it exists, to only ingest data since the last scene.")
