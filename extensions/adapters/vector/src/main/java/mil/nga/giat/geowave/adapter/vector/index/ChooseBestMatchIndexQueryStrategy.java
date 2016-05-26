@@ -69,9 +69,11 @@ public class ChooseBestMatchIndexQueryStrategy implements
 				while (!done && i < indices.length) {
 					nextIdx = (PrimaryIndex) indices[i++];
 					if (nextIdx.getIndexStrategy().getOrderedDimensionDefinitions().length == 0) continue;
-					final List<MultiDimensionalNumericData> constraints = query.getIndexConstraints(nextIdx.getIndexStrategy());
+					final List<MultiDimensionalNumericData> constraints = query.getIndexConstraints(nextIdx
+							.getIndexStrategy());
 					if (!stats.containsKey(RowRangeHistogramStatistics.composeId(nextIdx.getId()))) {
-						LOGGER.warn("Best Match Heuristic requires statistic RowRangeHistogramStatistics for each index to properly choose an index.");
+						LOGGER
+								.warn("Best Match Heuristic requires statistic RowRangeHistogramStatistics for each index to properly choose an index.");
 					}
 
 					if (isFullTableScan(constraints)) {

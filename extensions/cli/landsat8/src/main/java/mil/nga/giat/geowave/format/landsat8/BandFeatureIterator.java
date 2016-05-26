@@ -30,14 +30,11 @@ public class BandFeatureIterator implements
 		SimpleFeatureIterator
 {
 	private static final int DOWNLOAD_RETRY = 5;
-	private final static Logger LOGGER = LoggerFactory.getLogger(
-			BandFeatureIterator.class);
+	private final static Logger LOGGER = LoggerFactory.getLogger(BandFeatureIterator.class);
 	protected final static NumberFormat PATH_ROW_FORMATTER = NumberFormat.getIntegerInstance();
 	static {
-		PATH_ROW_FORMATTER.setMaximumIntegerDigits(
-				3);
-		PATH_ROW_FORMATTER.setMinimumIntegerDigits(
-				3);
+		PATH_ROW_FORMATTER.setMaximumIntegerDigits(3);
+		PATH_ROW_FORMATTER.setMinimumIntegerDigits(3);
 	}
 	private static final String DOWNLOAD_PREFIX = "http://landsat-pds.s3.amazonaws.com/L8";
 	protected static final String BANDS_TYPE_NAME = "band";
@@ -85,10 +82,8 @@ public class BandFeatureIterator implements
 			final SimpleFeatureType sceneType ) {
 		// initialize the feature type
 		final SimpleFeatureTypeBuilder typeBuilder = new SimpleFeatureTypeBuilder();
-		typeBuilder.init(
-				sceneType);
-		typeBuilder.setName(
-				BANDS_TYPE_NAME);
+		typeBuilder.init(sceneType);
+		typeBuilder.setName(BANDS_TYPE_NAME);
 		typeBuilder.add(
 				BAND_ATTRIBUTE_NAME,
 				String.class);
@@ -108,14 +103,12 @@ public class BandFeatureIterator implements
 			final Filter cqlFilter ) {
 		// wrap the iterator with a feature conversion and a filter (if
 		// provided)
-		final SimpleFeatureType bandType = createFeatureType(
-				sceneIterator.getFeatureType());
-		iterator = Iterators.concat(
-				Iterators.transform(
-						new FeatureIteratorIterator<SimpleFeature>(
-								sceneIterator),
-						new SceneToBandFeatureTransform(
-								bandType)));
+		final SimpleFeatureType bandType = createFeatureType(sceneIterator.getFeatureType());
+		iterator = Iterators.concat(Iterators.transform(
+				new FeatureIteratorIterator<SimpleFeature>(
+						sceneIterator),
+				new SceneToBandFeatureTransform(
+						bandType)));
 		if (cqlFilter != null) {
 			final String[] attributes = DataUtilities.attributeNames(
 					cqlFilter,
@@ -124,13 +117,11 @@ public class BandFeatureIterator implements
 			// specific band filters
 			if (ArrayUtils.contains(
 					attributes,
-					BAND_ATTRIBUTE_NAME)
-					|| ArrayUtils.contains(
-							attributes,
-							SIZE_ATTRIBUTE_NAME)
-					|| ArrayUtils.contains(
-							attributes,
-							BAND_DOWNLOAD_ATTRIBUTE_NAME)) {
+					BAND_ATTRIBUTE_NAME) || ArrayUtils.contains(
+					attributes,
+					SIZE_ATTRIBUTE_NAME) || ArrayUtils.contains(
+					attributes,
+					BAND_DOWNLOAD_ATTRIBUTE_NAME)) {
 				// and rely on the band filter
 				iterator = Iterators.filter(
 						iterator,
@@ -183,10 +174,8 @@ public class BandFeatureIterator implements
 		public Iterator<SimpleFeature> apply(
 				final SimpleFeature scene ) {
 			final String entityId = scene.getID();
-			final int path = (int) scene.getAttribute(
-					SceneFeatureIterator.PATH_ATTRIBUTE_NAME);
-			final int row = (int) scene.getAttribute(
-					SceneFeatureIterator.ROW_ATTRIBUTE_NAME);
+			final int path = (int) scene.getAttribute(SceneFeatureIterator.PATH_ATTRIBUTE_NAME);
+			final int row = (int) scene.getAttribute(SceneFeatureIterator.ROW_ATTRIBUTE_NAME);
 			final List<SimpleFeature> bands = new ArrayList<SimpleFeature>();
 			final String indexHtml = getDownloadIndexHtml(
 					entityId,
@@ -199,30 +188,24 @@ public class BandFeatureIterator implements
 				try {
 					if (retry > 0) {
 						// wait for a second
-						Thread.sleep(
-								1000L);
+						Thread.sleep(1000L);
 					}
-					htmlLines = IOUtils.readLines(
-							new URL(
-									indexHtml).openStream());
+					htmlLines = IOUtils.readLines(new URL(
+							indexHtml).openStream());
 					success = true;
 					for (final String line : htmlLines) {
 						// read everything before the tif
-						int endIndex = line.indexOf(
-								".TIF\"");
+						int endIndex = line.indexOf(".TIF\"");
 						if (endIndex > 0) {
 							// read everything after the underscore
-							int beginIndex = line.indexOf(
-									"_") + 1;
+							int beginIndex = line.indexOf("_") + 1;
 							final String bandId = line.substring(
 									beginIndex,
 									endIndex);
-							endIndex = line.indexOf(
-									"MB)");
+							endIndex = line.indexOf("MB)");
 							double divisor = 1;
 							if (endIndex < 0) {
-								endIndex = line.indexOf(
-										"KB)");
+								endIndex = line.indexOf("KB)");
 								divisor = 1000;
 							}
 							if (endIndex < 0) {
@@ -240,13 +223,11 @@ public class BandFeatureIterator implements
 							sizeStr = sizeStr.replaceAll(
 									"[^\\d.]",
 									"");
-							final double mb = Double.parseDouble(
-									sizeStr) / divisor;
+							final double mb = Double.parseDouble(sizeStr) / divisor;
 							for (final String attributeName : SceneFeatureIterator.SCENE_ATTRIBUTES) {
 								featureBuilder.set(
 										attributeName,
-										scene.getAttribute(
-												attributeName));
+										scene.getAttribute(attributeName));
 							}
 							featureBuilder.set(
 									SIZE_ATTRIBUTE_NAME,
@@ -261,9 +242,7 @@ public class BandFeatureIterator implements
 											path,
 											row,
 											bandId));
-							bands.add(
-									featureBuilder.buildFeature(
-											entityId + "_" + bandId));
+							bands.add(featureBuilder.buildFeature(entityId + "_" + bandId));
 						}
 					}
 				}
@@ -281,11 +260,8 @@ public class BandFeatureIterator implements
 			final String entityId,
 			final int path,
 			final int row ) {
-		return DOWNLOAD_PREFIX + "/" + PATH_ROW_FORMATTER.format(
-				path) + "/"
-				+ PATH_ROW_FORMATTER.format(
-						row)
-				+ "/" + entityId;
+		return DOWNLOAD_PREFIX + "/" + PATH_ROW_FORMATTER.format(path) + "/" + PATH_ROW_FORMATTER.format(row) + "/"
+				+ entityId;
 	}
 
 	protected static String getDownloadIndexHtml(
@@ -322,8 +298,7 @@ public class BandFeatureIterator implements
 		@Override
 		public boolean apply(
 				final SimpleFeature input ) {
-			return cqlFilter.evaluate(
-					input);
+			return cqlFilter.evaluate(input);
 		}
 
 	}

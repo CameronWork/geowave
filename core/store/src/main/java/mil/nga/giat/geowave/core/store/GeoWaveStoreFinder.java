@@ -11,9 +11,6 @@ import java.util.Map.Entry;
 import java.util.ServiceLoader;
 import java.util.Set;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import mil.nga.giat.geowave.core.store.adapter.AdapterIndexMappingStore;
 import mil.nga.giat.geowave.core.store.adapter.AdapterStore;
 import mil.nga.giat.geowave.core.store.adapter.statistics.DataStatisticsStore;
@@ -22,6 +19,9 @@ import mil.nga.giat.geowave.core.store.config.ConfigUtils;
 import mil.nga.giat.geowave.core.store.index.IndexStore;
 import mil.nga.giat.geowave.core.store.index.SecondaryIndexDataStore;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 public class GeoWaveStoreFinder
 {
 	private static final Logger LOGGER = LoggerFactory.getLogger(GeoWaveStoreFinder.class);
@@ -29,7 +29,8 @@ public class GeoWaveStoreFinder
 
 	public static final ConfigOption STORE_HINT_OPTION = new ConfigOption(
 			STORE_HINT_KEY,
-			"Set the GeoWave store, by default it will try to discover based on matching config options. " + getStoreNames(),
+			"Set the GeoWave store, by default it will try to discover based on matching config options. "
+					+ getStoreNames(),
 			true,
 			String.class);
 
@@ -110,7 +111,9 @@ public class GeoWaveStoreFinder
 	private static List<String> getMissingRequiredOptions(
 			final StoreFactoryFamilySpi factory,
 			final Map<String, String> configOptions ) {
-		final ConfigOption[] options = ConfigUtils.createConfigOptionsFromJCommander(factory.getDataStoreFactory().createOptionsInstance());
+		final ConfigOption[] options = ConfigUtils.createConfigOptionsFromJCommander(factory
+				.getDataStoreFactory()
+				.createOptionsInstance());
 		final List<String> missing = new ArrayList<String>();
 		for (final ConfigOption option : options) {
 			if (!option.isOptional() && !configOptions.containsKey(option.getName())) {
@@ -133,7 +136,8 @@ public class GeoWaveStoreFinder
 				if (missingOptions.isEmpty()) {
 					return factory;
 				}
-				LOGGER.error("Unable to find config options for store '" + storeHint.toString() + "'." + ConfigUtils.getOptions(missingOptions));
+				LOGGER.error("Unable to find config options for store '" + storeHint.toString() + "'."
+						+ ConfigUtils.getOptions(missingOptions));
 				return null;
 			}
 			else {
@@ -156,8 +160,11 @@ public class GeoWaveStoreFinder
 			final List<String> missingOptions = getMissingRequiredOptions(
 					factory,
 					configOptions);
-			ConfigOption[] factoryOptions = ConfigUtils.createConfigOptionsFromJCommander(factory.getDataStoreFactory().createOptionsInstance());
-			if (missingOptions.isEmpty() && ((matchingFactory == null) || (factoryOptions.length >= matchingFactoryOptionCount))) {
+			ConfigOption[] factoryOptions = ConfigUtils.createConfigOptionsFromJCommander(factory
+					.getDataStoreFactory()
+					.createOptionsInstance());
+			if (missingOptions.isEmpty()
+					&& ((matchingFactory == null) || (factoryOptions.length >= matchingFactoryOptionCount))) {
 				matchingFactory = factory;
 				matchingFactoriesHaveSameOptionCount = (factoryOptions.length == matchingFactoryOptionCount);
 				matchingFactoryOptionCount = factoryOptions.length;
@@ -190,14 +197,18 @@ public class GeoWaveStoreFinder
 	public static synchronized ConfigOption[] getAllOptions(
 			final StoreFactoryFamilySpi storeFactoryFamily ) {
 		final List<ConfigOption> allOptions = new ArrayList<ConfigOption>();
-		allOptions.addAll(Arrays.asList(ConfigUtils.createConfigOptionsFromJCommander(storeFactoryFamily.getDataStoreFactory().createOptionsInstance())));
+		allOptions.addAll(Arrays.asList(ConfigUtils.createConfigOptionsFromJCommander(storeFactoryFamily
+				.getDataStoreFactory()
+				.createOptionsInstance())));
 		return allOptions.toArray(new ConfigOption[] {});
 	}
 
 	public static synchronized ConfigOption[] getAllOptions() {
 		final List<ConfigOption> allOptions = new ArrayList<ConfigOption>();
 		for (final StoreFactoryFamilySpi f : getRegisteredStoreFactoryFamilies().values()) {
-			ConfigOption[] factoryOptions = ConfigUtils.createConfigOptionsFromJCommander(f.getDataStoreFactory().createOptionsInstance());
+			ConfigOption[] factoryOptions = ConfigUtils.createConfigOptionsFromJCommander(f
+					.getDataStoreFactory()
+					.createOptionsInstance());
 			allOptions.addAll(Arrays.asList(factoryOptions));
 		}
 		return allOptions.toArray(new ConfigOption[] {});

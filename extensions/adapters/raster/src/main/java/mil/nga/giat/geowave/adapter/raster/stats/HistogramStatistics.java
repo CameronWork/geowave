@@ -225,7 +225,8 @@ public class HistogramStatistics extends
 			final GridCoverage2D coverage = (GridCoverage2D) op.doOperation(
 					params,
 					null);
-			final javax.media.jai.Histogram histogram = (javax.media.jai.Histogram) coverage.getProperty(Histogram.GT_SYNTHETIC_PROPERTY_HISTOGRAM);
+			final javax.media.jai.Histogram histogram = (javax.media.jai.Histogram) coverage
+					.getProperty(Histogram.GT_SYNTHETIC_PROPERTY_HISTOGRAM);
 
 			javax.media.jai.Histogram mergedHistogram;
 			final javax.media.jai.Histogram resolutionHistogram = histograms.get(resolution);
@@ -247,9 +248,10 @@ public class HistogramStatistics extends
 			// this is simply 'info' because there is a known issue in the
 			// histogram op when the ROI is so small that the resulting cropped
 			// pixel size is 0
-			LOGGER.info(
-					"This is often a non-issue relating to applying an ROI calculation that results in 0 pixels (the error is in calculating stats).",
-					e);
+			LOGGER
+					.info(
+							"This is often a non-issue relating to applying an ROI calculation that results in 0 pixels (the error is in calculating stats).",
+							e);
 		}
 
 	}

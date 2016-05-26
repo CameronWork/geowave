@@ -28,8 +28,7 @@ public class VectorIngestRunner extends
 		AnalyzeRunner
 {
 
-	private final static Logger LOGGER = LoggerFactory.getLogger(
-			RasterIngestRunner.class);
+	private final static Logger LOGGER = LoggerFactory.getLogger(RasterIngestRunner.class);
 	protected final List<String> parameters;
 	private IndexWriter bandWriter;
 	private IndexWriter sceneWriter;
@@ -54,10 +53,8 @@ public class VectorIngestRunner extends
 				throw new ParameterException(
 						"Requires arguments: <storename> <comma delimited index/group list>");
 			}
-			final String inputStoreName = parameters.get(
-					0);
-			final String indexList = parameters.get(
-					1);
+			final String inputStoreName = parameters.get(0);
+			final String indexList = parameters.get(1);
 
 			// Config file
 			final File configFile = (File) params.getContext().get(
@@ -70,8 +67,7 @@ public class VectorIngestRunner extends
 			if (storeOptions == null) {
 				final StoreLoader inputStoreLoader = new StoreLoader(
 						inputStoreName);
-				if (!inputStoreLoader.loadFromConfig(
-						configFile)) {
+				if (!inputStoreLoader.loadFromConfig(configFile)) {
 					throw new ParameterException(
 							"Cannot find store name: " + inputStoreLoader.getStoreName());
 				}
@@ -82,8 +78,7 @@ public class VectorIngestRunner extends
 			if (indexOptions == null) {
 				final IndexLoader indexLoader = new IndexLoader(
 						indexList);
-				if (!indexLoader.loadFromConfig(
-						configFile)) {
+				if (!indexLoader.loadFromConfig(configFile)) {
 					throw new ParameterException(
 							"Cannot find index(s) by name: " + indexList);
 				}
@@ -95,8 +90,7 @@ public class VectorIngestRunner extends
 			for (final IndexPluginOptions dimensionType : indexOptions) {
 				final PrimaryIndex primaryIndex = dimensionType.createPrimaryIndex();
 				if (primaryIndex == null) {
-					LOGGER.error(
-							"Could not get index instance, getIndex() returned null;");
+					LOGGER.error("Could not get index instance, getIndex() returned null;");
 					throw new IOException(
 							"Could not get index instance, getIndex() returned null");
 				}
@@ -108,15 +102,13 @@ public class VectorIngestRunner extends
 			sceneWriter = store.createWriter(
 					sceneAdapter,
 					indices);
-			final SimpleFeatureType bandType = BandFeatureIterator.createFeatureType(
-					sceneType);
+			final SimpleFeatureType bandType = BandFeatureIterator.createFeatureType(sceneType);
 			final FeatureDataAdapter bandAdapter = new FeatureDataAdapter(
 					bandType);
 			bandWriter = store.createWriter(
 					bandAdapter,
 					indices);
-			super.runInternal(
-					params);
+			super.runInternal(params);
 		}
 		finally {
 			if (sceneWriter != null) {
@@ -146,8 +138,7 @@ public class VectorIngestRunner extends
 	protected void nextBand(
 			final SimpleFeature band,
 			final AnalysisInfo analysisInfo ) {
-		bandWriter.write(
-				band);
+		bandWriter.write(band);
 		super.nextBand(
 				band,
 				analysisInfo);
@@ -161,25 +152,20 @@ public class VectorIngestRunner extends
 				sceneType);
 		String fid = null;
 		for (int i = 0; i < sceneType.getAttributeCount(); i++) {
-			final AttributeDescriptor attr = sceneType.getDescriptor(
-					i);
+			final AttributeDescriptor attr = sceneType.getDescriptor(i);
 			final String attrName = attr.getLocalName();
-			final Object attrValue = firstBandOfScene.getAttribute(
-					attrName);
+			final Object attrValue = firstBandOfScene.getAttribute(attrName);
 			if (attrValue != null) {
 				bldr.set(
 						i,
 						attrValue);
-				if (attrName.equals(
-						SceneFeatureIterator.ENTITY_ID_ATTRIBUTE_NAME)) {
+				if (attrName.equals(SceneFeatureIterator.ENTITY_ID_ATTRIBUTE_NAME)) {
 					fid = attrValue.toString();
 				}
 			}
 		}
 		if (fid != null) {
-			sceneWriter.write(
-					bldr.buildFeature(
-							fid));
+			sceneWriter.write(bldr.buildFeature(fid));
 		}
 		super.nextScene(
 				firstBandOfScene,

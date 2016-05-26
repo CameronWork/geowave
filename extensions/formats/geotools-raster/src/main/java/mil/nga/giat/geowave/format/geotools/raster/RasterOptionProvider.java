@@ -65,10 +65,9 @@ public class RasterOptionProvider implements
 		if (nodataPerBand <= 1) {
 			for (int b = 0; b < numBands; b++) {
 				retVal[b] = new double[] {
-					nodata.get(
-							Math.min(
-									b,
-									nodata.size() - 1))
+					nodata.get(Math.min(
+							b,
+							nodata.size() - 1))
 				};
 			}
 		}
@@ -76,8 +75,7 @@ public class RasterOptionProvider implements
 			for (int b = 0; b < retVal.length; b++) {
 				retVal[b] = new double[nodataPerBand];
 				for (int i = 0; i < nodataPerBand; i++) {
-					retVal[b][i] = nodata.get(
-							(b * nodataPerBand) + i);
+					retVal[b][i] = nodata.get((b * nodataPerBand) + i);
 				}
 			}
 		}

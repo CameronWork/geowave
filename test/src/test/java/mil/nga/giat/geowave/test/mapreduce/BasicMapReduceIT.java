@@ -15,6 +15,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.FilenameUtils;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.NullWritable;
@@ -71,7 +72,8 @@ import mil.nga.giat.geowave.test.annotation.GeoWaveTestStore.GeoWaveStoreType;
 })
 public class BasicMapReduceIT
 {
-	protected static final String TEST_DATA_ZIP_RESOURCE_PATH = TestUtils.TEST_RESOURCE_PACKAGE + "mapreduce-testdata.zip";
+	protected static final String TEST_DATA_ZIP_RESOURCE_PATH = TestUtils.TEST_RESOURCE_PACKAGE
+			+ "mapreduce-testdata.zip";
 	protected static final String TEST_CASE_GENERAL_GPX_BASE = TestUtils.TEST_CASE_BASE + "general_gpx_test_case/";
 	protected static final String GENERAL_GPX_FILTER_PACKAGE = TEST_CASE_GENERAL_GPX_BASE + "filter/";
 	protected static final String GENERAL_GPX_FILTER_FILE = GENERAL_GPX_FILTER_PACKAGE + "filter.shp";
@@ -160,7 +162,8 @@ public class BasicMapReduceIT
 			Assert.assertNotNull(url);
 			expectedResultsResources.add(url);
 		}
-		final ExpectedResults expectedResults = TestUtils.getExpectedResults(expectedResultsResources.toArray(new URL[expectedResultsResources.size()]));
+		final ExpectedResults expectedResults = TestUtils.getExpectedResults(expectedResultsResources
+				.toArray(new URL[expectedResultsResources.size()]));
 		runTestJob(
 				expectedResults,
 				TestUtils.resourceToQuery(new File(
@@ -253,18 +256,34 @@ public class BasicMapReduceIT
 			throws Exception {
 		final VectorMRExportCommand exportCommand = new VectorMRExportCommand();
 		final VectorMRExportOptions options = exportCommand.getMrOptions();
-		final File exportDir = new File(
-				TestUtils.TEMP_DIR,
-				TEST_EXPORT_DIRECTORY);
-		exportDir.delete();
-		exportDir.mkdir();
 
 		exportCommand.setStoreOptions(dataStorePluginOptions);
 
 		final MapReduceTestEnvironment env = MapReduceTestEnvironment.getInstance();
+		final String exportPath = env.getHdfsBaseDirectory() + "/" + TEST_EXPORT_DIRECTORY;
+
+		final File exportDir = new File(
+				exportPath.replace(
+						"file:",
+						""));
+		if (exportDir.exists()) {
+			boolean deleted = false;
+			int attempts = 5;
+			while (!deleted && attempts-- > 0) {
+				try {
+					FileUtils.deleteDirectory(exportDir);
+					deleted = true;
+				}
+				catch (Exception e) {
+					LOGGER.error("Export directory not deleted, trying again in 10s: " + e);
+					Thread.sleep(10000);
+				}
+			}
+		}
+
 		exportCommand.setParameters(
 				env.getHdfs(),
-				env.getHdfsBaseDirectory() + "/" + TEST_EXPORT_DIRECTORY,
+				exportPath,
 				null);
 		options.setBatchSize(10000);
 		options.setMinSplits(MapReduceTestUtils.MIN_INPUT_SPLITS);
@@ -285,7 +304,8 @@ public class BasicMapReduceIT
 				dataStorePluginOptions,
 				DimensionalityType.ALL,
 				"avro",
-				TestUtils.TEMP_DIR + File.separator + MapReduceTestEnvironment.HDFS_BASE_DIRECTORY + File.separator + TEST_EXPORT_DIRECTORY);
+				TestUtils.TEMP_DIR + File.separator + MapReduceTestEnvironment.HDFS_BASE_DIRECTORY + File.separator
+						+ TEST_EXPORT_DIRECTORY);
 	}
 
 	@SuppressFBWarnings(value = "DM_GC", justification = "Memory usage kept low for travis-ci")
@@ -418,7 +438,8 @@ public class BasicMapReduceIT
 				final SimpleFeature result = (SimpleFeature) value;
 				final Geometry geometry = (Geometry) result.getDefaultGeometry();
 				if (!geometry.isEmpty()) {
-					resultType = expectedHashedCentroids.contains(TestUtils.hashCentroid(geometry)) ? ResultCounterType.EXPECTED : ResultCounterType.UNEXPECTED;
+					resultType = expectedHashedCentroids.contains(TestUtils.hashCentroid(geometry)) ? ResultCounterType.EXPECTED
+							: ResultCounterType.UNEXPECTED;
 				}
 			}
 			context.getCounter(

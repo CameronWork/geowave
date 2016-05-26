@@ -94,10 +94,11 @@ public class AccumuloMRUtils
 		final List<InputSplit> retVal = new ArrayList<InputSplit>();
 		final TreeSet<IntermediateSplitInfo> splits = new TreeSet<IntermediateSplitInfo>();
 
-		for (Pair<PrimaryIndex, List<DataAdapter<Object>>> indexAdapterPair : queryOptions.getAdaptersWithMinimalSetOfIndices(
-				adapterStore,
-				adapterIndexMappingStore,
-				indexStore)) {
+		for (Pair<PrimaryIndex, List<DataAdapter<Object>>> indexAdapterPair : queryOptions
+				.getAdaptersWithMinimalSetOfIndices(
+						adapterStore,
+						adapterIndexMappingStore,
+						indexStore)) {
 
 			populateIntermediateSplits(
 					splits,
@@ -202,27 +203,28 @@ public class AccumuloMRUtils
 				RowRangeDataStatistics.getId(index.getId()),
 				authorizations);
 		if (stats == null) {
-			LOGGER.warn("Could not determine range of data from 'RowRangeDataStatistics'.  Range will not be clipped. This may result in some splits being empty.");
+			LOGGER
+					.warn("Could not determine range of data from 'RowRangeDataStatistics'.  Range will not be clipped. This may result in some splits being empty.");
 			return new Range();
 		}
 
-		final int cardinality = Math.max(
-				stats.getMin().length,
-				stats.getMax().length);
+		final byte[] min = stats.getMin();
+		final byte[] max = stats.getMax();
+
 		return new Range(
 				new Key(
 						new Text(
 								getKeyFromBigInteger(
 										new BigInteger(
-												stats.getMin()).subtract(ONE),
-										cardinality))),
+												min).subtract(ONE),
+										min.length))),
 				true,
 				new Key(
 						new Text(
 								getKeyFromBigInteger(
 										new BigInteger(
-												stats.getMax()).add(ONE),
-										cardinality))),
+												max).add(ONE),
+										max.length))),
 				true);
 	}
 
@@ -250,13 +252,7 @@ public class AccumuloMRUtils
 					statsStore,
 					authorizations);
 		}
-		catch (final AccumuloException e) {
-			fullrange = new Range();
-			LOGGER.warn(
-					"Cannot ascertain the full range of the data",
-					e);
-		}
-		catch (final AccumuloSecurityException e) {
+		catch (final Exception e) {
 			fullrange = new Range();
 			LOGGER.warn(
 					"Cannot ascertain the full range of the data",
@@ -397,7 +393,8 @@ public class AccumuloMRUtils
 									statsCache,
 									authorizations),
 							clippedRange);
-					if (!(fullrange.beforeStartKey(clippedRange.getEndKey()) || fullrange.afterEndKey(clippedRange.getStartKey()))) {
+					if (!(fullrange.beforeStartKey(clippedRange.getEndKey()) || fullrange.afterEndKey(clippedRange
+							.getStartKey()))) {
 						rangeList.add(new RangeLocationPair(
 								clippedRange,
 								location,
@@ -597,7 +594,8 @@ public class AccumuloMRUtils
 						public int compare(
 								final IndexRangeLocation o1,
 								final IndexRangeLocation o2 ) {
-							return (o1.rangeLocationPair.getCardinality() - o2.rangeLocationPair.getCardinality()) < 0 ? -1 : 1;
+							return (o1.rangeLocationPair.getCardinality() - o2.rangeLocationPair.getCardinality()) < 0 ? -1
+									: 1;
 						}
 					});
 			for (final Entry<PrimaryIndex, List<RangeLocationPair>> ranges : splitInfo.entrySet()) {
@@ -668,7 +666,9 @@ public class AccumuloMRUtils
 			if (splitInfo.size() == 0) {
 				// First try to move a index set of ranges back.
 				if (otherSplitInfo.size() > 1) {
-					final Iterator<Entry<PrimaryIndex, List<RangeLocationPair>>> it = otherSplitInfo.entrySet().iterator();
+					final Iterator<Entry<PrimaryIndex, List<RangeLocationPair>>> it = otherSplitInfo
+							.entrySet()
+							.iterator();
 					final Entry<PrimaryIndex, List<RangeLocationPair>> entry = it.next();
 					it.remove();
 					splitInfo.put(
@@ -771,11 +771,12 @@ public class AccumuloMRUtils
 			final int numBytes ) {
 		final byte[] valueBytes = value.toByteArray();
 		final byte[] bytes = new byte[numBytes];
+		final int pos = (int) Math.abs(numBytes - valueBytes.length);
 		System.arraycopy(
 				valueBytes,
 				0,
 				bytes,
-				0,
+				pos,
 				Math.min(
 						valueBytes.length,
 						bytes.length));

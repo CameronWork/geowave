@@ -56,15 +56,12 @@ public class SceneFeatureIterator implements
 				final SimpleFeature first,
 				final SimpleFeature second ) {
 			return Float.compare(
-					(Float) first.getAttribute(
-							CLOUD_COVER_ATTRIBUTE_NAME),
-					(Float) second.getAttribute(
-							CLOUD_COVER_ATTRIBUTE_NAME));
+					(Float) first.getAttribute(CLOUD_COVER_ATTRIBUTE_NAME),
+					(Float) second.getAttribute(CLOUD_COVER_ATTRIBUTE_NAME));
 		}
 	}
 
-	private final static Logger LOGGER = LoggerFactory.getLogger(
-			SceneFeatureIterator.class);
+	private final static Logger LOGGER = LoggerFactory.getLogger(SceneFeatureIterator.class);
 	private static final String SCENES_GZ_URL = "http://landsat-pds.s3.amazonaws.com/scene_list.gz";
 	protected static final String SCENES_TYPE_NAME = "scene";
 	public static final String SHAPE_ATTRIBUTE_NAME = "shape";
@@ -128,8 +125,7 @@ public class SceneFeatureIterator implements
 			final Filter cqlFilter )
 			throws IOException {
 		if (!scenesDir.exists() && !scenesDir.mkdirs()) {
-			LOGGER.warn(
-					"Unable to create directory '" + scenesDir.getAbsolutePath() + "'");
+			LOGGER.warn("Unable to create directory '" + scenesDir.getAbsolutePath() + "'");
 		}
 		final File csvFile = new File(
 				scenesDir,
@@ -168,8 +164,7 @@ public class SceneFeatureIterator implements
 			}
 			finally {
 				if (in != null) {
-					IOUtils.closeQuietly(
-							in);
+					IOUtils.closeQuietly(in);
 				}
 			}
 			// next unzip to CSV
@@ -186,8 +181,7 @@ public class SceneFeatureIterator implements
 						bin);
 				final byte[] buffer = new byte[1024];
 				int n = 0;
-				while (-1 != (n = gzIn.read(
-						buffer))) {
+				while (-1 != (n = gzIn.read(buffer))) {
 					out.write(
 							buffer,
 							0,
@@ -206,12 +200,10 @@ public class SceneFeatureIterator implements
 			}
 			finally {
 				if (out != null) {
-					IOUtils.closeQuietly(
-							out);
+					IOUtils.closeQuietly(out);
 				}
 				if (gzIn != null) {
-					IOUtils.closeQuietly(
-							gzIn);
+					IOUtils.closeQuietly(gzIn);
 				}
 			}
 			if (onlyScenesSinceLastRun && csvFile.exists()) {
@@ -226,8 +218,7 @@ public class SceneFeatureIterator implements
 			if (csvFile.exists()) {
 				csvFile.delete();
 			}
-			tempCsvFile.renameTo(
-					csvFile);
+			tempCsvFile.renameTo(csvFile);
 		}
 		type = createFeatureType();
 		setupCsvToFeatureIterator(
@@ -239,15 +230,14 @@ public class SceneFeatureIterator implements
 			// rely on best scene aggregation at a higher level if the filter is
 			// using attributes not contained in the scene
 
-			if (!hasOtherProperties(
-					cqlFilter)) {
+			if (!hasOtherProperties(cqlFilter)) {
 				nBestScenes(
 						nBestScenesByPathRow,
 						nBestScenes);
 			}
 			else {
-				LOGGER.warn(
-						"Applying N best scene calculation using band metadata in the filter can be slow - band metadata must be applied to every scene.");
+				LOGGER
+						.warn("Applying N best scene calculation using band metadata in the filter can be slow - band metadata must be applied to every scene.");
 			}
 		}
 	}
@@ -255,8 +245,7 @@ public class SceneFeatureIterator implements
 	public static SimpleFeatureType createFeatureType() {
 		// initialize the feature type
 		final SimpleFeatureTypeBuilder typeBuilder = new SimpleFeatureTypeBuilder();
-		typeBuilder.setName(
-				SCENES_TYPE_NAME);
+		typeBuilder.setName(SCENES_TYPE_NAME);
 		typeBuilder.add(
 				SHAPE_ATTRIBUTE_NAME,
 				MultiPolygon.class);
@@ -360,50 +349,37 @@ public class SceneFeatureIterator implements
 			final Map<PathRowPair, MinMaxPriorityQueue<SimpleFeature>> bestScenes = new HashMap<>();
 			while (iterator.hasNext()) {
 				final SimpleFeature feature = iterator.next();
-				final Integer path = (Integer) feature.getAttribute(
-						PATH_ATTRIBUTE_NAME);
-				final Integer row = (Integer) feature.getAttribute(
-						ROW_ATTRIBUTE_NAME);
+				final Integer path = (Integer) feature.getAttribute(PATH_ATTRIBUTE_NAME);
+				final Integer row = (Integer) feature.getAttribute(ROW_ATTRIBUTE_NAME);
 				final PathRowPair pr = new PathRowPair(
 						path,
 						row);
-				MinMaxPriorityQueue<SimpleFeature> queue = bestScenes.get(
-						pr);
+				MinMaxPriorityQueue<SimpleFeature> queue = bestScenes.get(pr);
 				if (queue == null) {
-					queue = MinMaxPriorityQueue
-							.orderedBy(
-									new BestCloudCoverComparator())
-							.maximumSize(
-									n)
-							.create();
+					queue = MinMaxPriorityQueue.orderedBy(
+							new BestCloudCoverComparator()).maximumSize(
+							n).create();
 					bestScenes.put(
 							pr,
 							queue);
 				}
-				queue.offer(
-						feature);
+				queue.offer(feature);
 			}
 			final List<Iterator<SimpleFeature>> iterators = new ArrayList<Iterator<SimpleFeature>>();
 			for (final MinMaxPriorityQueue<SimpleFeature> queue : bestScenes.values()) {
-				iterators.add(
-						queue.iterator());
+				iterators.add(queue.iterator());
 			}
-			return Iterators.concat(
-					iterators.iterator());
+			return Iterators.concat(iterators.iterator());
 		}
 
-		final MinMaxPriorityQueue<SimpleFeature> bestScenes = MinMaxPriorityQueue
-				.orderedBy(
-						new BestCloudCoverComparator())
-				.maximumSize(
-						n)
-				.create();
+		final MinMaxPriorityQueue<SimpleFeature> bestScenes = MinMaxPriorityQueue.orderedBy(
+				new BestCloudCoverComparator()).maximumSize(
+				n).create();
 		// iterate once through the scenes, saving the best entity IDs
 		// based on cloud cover
 
 		while (iterator.hasNext()) {
-			bestScenes.offer(
-					iterator.next());
+			bestScenes.offer(iterator.next());
 		}
 		iterator.close();
 		return bestScenes.iterator();
@@ -437,8 +413,7 @@ public class SceneFeatureIterator implements
 						type));
 		if (cqlFilter != null) {
 			Filter actualFilter;
-			if (hasOtherProperties(
-					cqlFilter)) {
+			if (hasOtherProperties(cqlFilter)) {
 				final PropertyIgnoringFilterVisitor visitor = new PropertyIgnoringFilterVisitor(
 						SCENE_ATTRIBUTES,
 						type);
@@ -514,58 +489,37 @@ public class SceneFeatureIterator implements
 		@Override
 		public SimpleFeature apply(
 				final CSVRecord input ) {
-			final String entityId = input.get(
-					"entityId");
-			final double cloudCover = Double.parseDouble(
-					input.get(
-							"cloudCover"));
-			final String processingLevel = input.get(
-					"processingLevel");
-			final int path = Integer.parseInt(
-					input.get(
-							"path"));
-			final int row = Integer.parseInt(
-					input.get(
-							"row"));
-			final String downloadUrl = input.get(
-					"download_url");
+			final String entityId = input.get("entityId");
+			final double cloudCover = Double.parseDouble(input.get("cloudCover"));
+			final String processingLevel = input.get("processingLevel");
+			final int path = Integer.parseInt(input.get("path"));
+			final int row = Integer.parseInt(input.get("row"));
+			final String downloadUrl = input.get("download_url");
 
 			final MultiPolygon shape = wrs2Geometry.getGeometry(
 					path,
 					row);
-			featureBuilder.add(
-					shape);
-			featureBuilder.add(
-					entityId);
+			featureBuilder.add(shape);
+			featureBuilder.add(entityId);
 			Date aquisitionDate;
 			try {
-				aquisitionDate = AQUISITION_DATE_FORMAT.parse(
-						input.get(
-								"acquisitionDate"));
-				featureBuilder.add(
-						aquisitionDate);
+				aquisitionDate = AQUISITION_DATE_FORMAT.parse(input.get("acquisitionDate"));
+				featureBuilder.add(aquisitionDate);
 			}
 			catch (final ParseException e) {
 				LOGGER.warn(
 						"Unable to parse aquisition date",
 						e);
 
-				featureBuilder.add(
-						null);
+				featureBuilder.add(null);
 			}
 
-			featureBuilder.add(
-					cloudCover);
-			featureBuilder.add(
-					processingLevel);
-			featureBuilder.add(
-					path);
-			featureBuilder.add(
-					row);
-			featureBuilder.add(
-					downloadUrl);
-			return featureBuilder.buildFeature(
-					entityId);
+			featureBuilder.add(cloudCover);
+			featureBuilder.add(processingLevel);
+			featureBuilder.add(path);
+			featureBuilder.add(row);
+			featureBuilder.add(downloadUrl);
+			return featureBuilder.buildFeature(entityId);
 		}
 	}
 
@@ -582,8 +536,7 @@ public class SceneFeatureIterator implements
 		@Override
 		public boolean apply(
 				final SimpleFeature input ) {
-			return cqlFilter.evaluate(
-					input);
+			return cqlFilter.evaluate(input);
 		}
 
 	}

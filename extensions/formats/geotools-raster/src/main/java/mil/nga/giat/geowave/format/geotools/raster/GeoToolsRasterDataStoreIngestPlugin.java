@@ -37,8 +37,7 @@ import mil.nga.giat.geowave.core.store.index.PrimaryIndex;
 public class GeoToolsRasterDataStoreIngestPlugin implements
 		LocalFileIngestPlugin<GridCoverage>
 {
-	private final static Logger LOGGER = Logger.getLogger(
-			GeoToolsRasterDataStoreIngestPlugin.class);
+	private final static Logger LOGGER = Logger.getLogger(GeoToolsRasterDataStoreIngestPlugin.class);
 	private final RasterOptionProvider optionProvider;
 
 	public GeoToolsRasterDataStoreIngestPlugin() {
@@ -64,8 +63,7 @@ public class GeoToolsRasterDataStoreIngestPlugin implements
 	public boolean supportsFile(
 			final File file ) {
 
-		final AbstractGridFormat format = GridFormatFinder.findFormat(
-				file);
+		final AbstractGridFormat format = GridFormatFinder.findFormat(file);
 		// the null check is enough and we don't need to check the format
 		// accepts this file because the finder should have previously validated
 		// this
@@ -78,24 +76,19 @@ public class GeoToolsRasterDataStoreIngestPlugin implements
 			final Collection<ByteArrayId> primaryIndexIds,
 			final String globalVisibility ) {
 
-		final AbstractGridFormat format = GridFormatFinder.findFormat(
-				input);
-		final GridCoverage2DReader reader = format.getReader(
-				input);
+		final AbstractGridFormat format = GridFormatFinder.findFormat(input);
+		final GridCoverage2DReader reader = format.getReader(input);
 		if (reader == null) {
-			LOGGER.error(
-					"Unable to get reader instance, getReader returned null");
+			LOGGER.error("Unable to get reader instance, getReader returned null");
 			return new Wrapper(
 					Collections.emptyIterator());
 		}
 		try {
-			final GridCoverage2D coverage = reader.read(
-					null);
+			final GridCoverage2D coverage = reader.read(null);
 			if (coverage != null) {
 				final Map<String, String> metadata = new HashMap<String, String>();
 				final String coverageName = coverage.getName().toString();
-				final String[] mdNames = reader.getMetadataNames(
-						coverageName);
+				final String[] mdNames = reader.getMetadataNames(coverageName);
 				if ((mdNames != null) && (mdNames.length > 0)) {
 					for (final String mdName : mdNames) {
 						metadata.put(
@@ -112,14 +105,12 @@ public class GeoToolsRasterDataStoreIngestPlugin implements
 						optionProvider.getTileSize(),
 						optionProvider.isBuildPyramid(),
 						optionProvider.isBuildHistogream(),
-						optionProvider.getNodata(
-								coverage.getNumSampleDimensions()));
+						optionProvider.getNodata(coverage.getNumSampleDimensions()));
 				final List<GeoWaveData<GridCoverage>> coverages = new ArrayList<GeoWaveData<GridCoverage>>();
-				coverages.add(
-						new GeoWaveData<GridCoverage>(
-								adapter,
-								primaryIndexIds,
-								coverage));
+				coverages.add(new GeoWaveData<GridCoverage>(
+						adapter,
+						primaryIndexIds,
+						coverage));
 				return new Wrapper(
 						coverages.iterator()) {
 
@@ -131,13 +122,14 @@ public class GeoToolsRasterDataStoreIngestPlugin implements
 				};
 			}
 			else {
-				LOGGER.warn(
-						"Null grid coverage from file '" + input.getAbsolutePath() + "' for discovered geotools format '" + format.getName() + "'");
+				LOGGER.warn("Null grid coverage from file '" + input.getAbsolutePath()
+						+ "' for discovered geotools format '" + format.getName() + "'");
 			}
 		}
 		catch (final IOException e) {
 			LOGGER.warn(
-					"Unable to read grid coverage of file '" + input.getAbsolutePath() + "' for discovered geotools format '" + format.getName() + "'",
+					"Unable to read grid coverage of file '" + input.getAbsolutePath()
+							+ "' for discovered geotools format '" + format.getName() + "'",
 					e);
 		}
 		return new Wrapper(

@@ -241,9 +241,11 @@ public class RasterIngestRunner extends
 			writer.write(nextCov);
 		}
 		catch (IOException | TemplateException e) {
-			LOGGER.error(
-					"Unable to ingest band " + band.getID() + " because coverage name cannot be resolved from template",
-					e);
+			LOGGER
+					.error(
+							"Unable to ingest band " + band.getID()
+									+ " because coverage name cannot be resolved from template",
+							e);
 		}
 		// }
 		// else {

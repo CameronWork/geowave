@@ -5,10 +5,12 @@ import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.text.MessageFormat;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.ListIterator;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
@@ -153,7 +155,9 @@ public class GeoWaveITRunner extends
 				final List<FrameworkField> annotatedFields = getStoreAnnotatedFields();
 				if (annotatedFields.size() != fieldNameStoreTypePair.size()) {
 					throw new GeoWaveITException(
-							"Wrong number of stores and @GeoWaveTestStore fields." + " @GeoWaveTestStore fields counted: " + annotatedFields.size() + ", available parameters: " + fieldNameStoreTypePair.size() + ".");
+							"Wrong number of stores and @GeoWaveTestStore fields."
+									+ " @GeoWaveTestStore fields counted: " + annotatedFields.size()
+									+ ", available parameters: " + fieldNameStoreTypePair.size() + ".");
 				}
 				for (final FrameworkField field : annotatedFields) {
 					fieldsAndNamespacePairs.add(new ImmutablePair<Field, String>(
@@ -208,7 +212,8 @@ public class GeoWaveITRunner extends
 					if (!field.getType().isAssignableFrom(
 							DataStorePluginOptions.class)) {
 						errors.add(new GeoWaveITException(
-								"'" + field.getName() + "' must be of type '" + DataStorePluginOptions.class.getName() + "'"));
+								"'" + field.getName() + "' must be of type '" + DataStorePluginOptions.class.getName()
+										+ "'"));
 					}
 				}
 			}
@@ -423,8 +428,11 @@ public class GeoWaveITRunner extends
 			throws Exception {
 		synchronized (MUTEX) {
 			if (!DEFER_CLEANUP.get()) {
-				for (final TestEnvironment e : testEnvs) {
-					e.tearDown();
+				// Tearodwn in reverse
+				List<TestEnvironment> envs = Arrays.asList(testEnvs);
+				ListIterator<TestEnvironment> it = envs.listIterator(envs.size());
+				while (it.hasPrevious()) {
+					it.previous().tearDown();
 				}
 			}
 		}

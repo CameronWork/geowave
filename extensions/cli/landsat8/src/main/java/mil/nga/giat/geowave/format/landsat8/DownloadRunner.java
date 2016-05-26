@@ -87,7 +87,8 @@ public class DownloadRunner extends
 		final int row = (int) band.getAttribute(SceneFeatureIterator.ROW_ATTRIBUTE_NAME);
 		final String entity = (String) band.getAttribute(SceneFeatureIterator.ENTITY_ID_ATTRIBUTE_NAME);
 		return new File(
-				workspaceDirectory + File.separator + DOWNLOAD_DIRECTORY + File.separator + path + File.separator + row + File.separator + entity + File.separator + band.getID() + ".TIF");
+				workspaceDirectory + File.separator + DOWNLOAD_DIRECTORY + File.separator + path + File.separator + row
+						+ File.separator + entity + File.separator + band.getID() + ".TIF");
 
 	}
 

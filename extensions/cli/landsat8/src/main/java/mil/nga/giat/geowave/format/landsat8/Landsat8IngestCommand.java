@@ -39,14 +39,14 @@ public class Landsat8IngestCommand extends
 			final OperationParams params )
 			throws Exception {
 		JAIExt.initJAIEXT();
-		//TODO figure out how to tie raster and vector ingest together
-//		final RasterIngestRunner runner = new RasterIngestRunner(
-//				analyzeOptions,
-//				downloadOptions,
-//				ingestOptions,
-//				parameters);
-//		runner.runInternal(
-//				params);
+		// TODO figure out how to tie raster and vector ingest together
+		// final RasterIngestRunner runner = new RasterIngestRunner(
+		// analyzeOptions,
+		// downloadOptions,
+		// ingestOptions,
+		// parameters);
+		// runner.runInternal(
+		// params);
 	}
 
 }

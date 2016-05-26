@@ -2,6 +2,7 @@ package mil.nga.giat.geowave.analytic.param;
 
 import java.util.Map;
 
+import org.apache.directory.api.util.exception.NotImplementedException;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.mapreduce.JobContext;
 import org.slf4j.Logger;
