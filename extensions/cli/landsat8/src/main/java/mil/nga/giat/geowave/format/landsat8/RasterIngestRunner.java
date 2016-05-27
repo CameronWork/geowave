@@ -16,6 +16,7 @@ import org.geotools.coverage.processing.AbstractOperation;
 import org.geotools.coverage.processing.CoverageProcessor;
 import org.geotools.coverage.processing.operation.BandMerge;
 import org.geotools.coverage.processing.operation.BandMerge.TransformList;
+import org.geotools.geometry.GeneralEnvelope;
 import org.geotools.geometry.jts.ReferencedEnvelope;
 import org.opengis.feature.simple.SimpleFeature;
 import org.opengis.feature.simple.SimpleFeatureType;
@@ -35,6 +36,9 @@ import freemarker.template.TemplateException;
 import mil.nga.giat.geowave.adapter.raster.RasterUtils;
 import mil.nga.giat.geowave.adapter.raster.adapter.RasterDataAdapter;
 import mil.nga.giat.geowave.adapter.raster.adapter.merge.nodata.NoDataMergeStrategy;
+import mil.nga.giat.geowave.adapter.raster.plugin.GeoWaveGTRasterFormat;
+import mil.nga.giat.geowave.adapter.raster.plugin.GeoWaveRasterReader;
+import mil.nga.giat.geowave.adapter.raster.plugin.GeoWaveRasterReaderState;
 import mil.nga.giat.geowave.adapter.vector.plugin.ExtractGeometryFilterVisitor;
 import mil.nga.giat.geowave.core.cli.api.OperationParams;
 import mil.nga.giat.geowave.core.cli.operations.config.options.ConfigOptions;
@@ -175,9 +179,9 @@ public class RasterIngestRunner extends
 				geotiffFile);
 		GridCoverage2D coverage = reader.read(null);
 		reader.dispose();
-		if ((ingestOptions.getCoverageName() != null) && !ingestOptions.getCoverageName().trim().isEmpty()) {
+		if ((ingestOptions.getCoverageConverter() != null) && !ingestOptions.getCoverageConverter().trim().isEmpty()) {
 			// a converter was supplied, attempt to use it
-			final Landsat8BandConverterSpi converter = getConverter(ingestOptions.getCoverageName());
+			final Landsat8BandConverterSpi converter = getConverter(ingestOptions.getCoverageConverter());
 			if (converter != null) {
 				coverage = converter.convert(
 						coverageName,
@@ -199,13 +203,21 @@ public class RasterIngestRunner extends
 			if (filter != null) {
 				final Geometry geometry = ExtractGeometryFilterVisitor.getConstraints(
 						filter,
-						coverage.getCoordinateReferenceSystem());
+						GeoWaveGTRasterFormat.DEFAULT_CRS);
 				if (geometry != null) {
-					coverage = (GridCoverage2D) RasterUtils.getCoverageOperations().crop(
-							coverage,
+					final GeoWaveRasterReaderState state = new GeoWaveRasterReaderState(
+							coverageName);
+					state.setRequestedEnvelope(new GeneralEnvelope(
 							new ReferencedEnvelope(
 									geometry.getEnvelopeInternal(),
-									coverage.getCoordinateReferenceSystem()));
+									GeoWaveGTRasterFormat.DEFAULT_CRS)));
+					GeoWaveRasterReader.transformRequestEnvelope(
+							state,
+							coverage.getCoordinateReferenceSystem());
+
+					coverage = (GridCoverage2D) RasterUtils.getCoverageOperations().crop(
+							coverage,
+							state.getRequestEnvelopeTransformed());
 					cropped = true;
 				}
 				if (!cropped) {
@@ -454,6 +466,7 @@ public class RasterIngestRunner extends
 
 	public synchronized Map<String, Landsat8BandConverterSpi> getRegisteredConverters() {
 		if (registeredBandConverters == null) {
+			registeredBandConverters = new HashMap<String, Landsat8BandConverterSpi>();
 			final ServiceLoader<Landsat8BandConverterSpi> converters = ServiceLoader
 					.load(Landsat8BandConverterSpi.class);
 			final Iterator<Landsat8BandConverterSpi> it = converters.iterator();

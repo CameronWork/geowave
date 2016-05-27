@@ -49,6 +49,10 @@ public class Landsat8RasterIngestCommandLineOptions
 		return coverageName;
 	}
 
+	public String getCoverageConverter() {
+		return coverageConverter;
+	}
+
 	public boolean isCoveragePerBand() {
 		// technically the coverage will be per band if it contains any of the
 		// band attribute names, but realistically the band name should be the

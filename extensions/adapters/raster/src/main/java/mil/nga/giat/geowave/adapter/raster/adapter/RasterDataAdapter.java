@@ -95,8 +95,10 @@ import mil.nga.giat.geowave.core.geotime.index.dimension.LongitudeDefinition;
 import mil.nga.giat.geowave.core.geotime.store.statistics.BoundingBoxDataStatistics;
 import mil.nga.giat.geowave.core.index.ByteArrayId;
 import mil.nga.giat.geowave.core.index.ByteArrayUtils;
+import mil.nga.giat.geowave.core.index.CompoundIndexStrategy;
 import mil.nga.giat.geowave.core.index.HierarchicalNumericIndexStrategy;
 import mil.nga.giat.geowave.core.index.HierarchicalNumericIndexStrategy.SubStrategy;
+import mil.nga.giat.geowave.core.index.NumericIndexStrategy;
 import mil.nga.giat.geowave.core.index.PersistenceUtils;
 import mil.nga.giat.geowave.core.index.StringUtils;
 import mil.nga.giat.geowave.core.index.dimension.NumericDimensionDefinition;
@@ -227,7 +229,7 @@ public class RasterDataAdapter implements
 			final int tileSize,
 			final boolean buildPyramid,
 			final boolean buildHistogram,
-			double[][] noDataValuesPerBand,
+			final double[][] noDataValuesPerBand,
 			final RasterTileMergeStrategy<?> mergeStrategy ) {
 		final RenderedImage img = originalGridCoverage.getRenderedImage();
 		sampleModel = img.getSampleModel();
@@ -242,7 +244,7 @@ public class RasterDataAdapter implements
 		else {
 			histogramConfig = null;
 		}
-		if (noDataValuesPerBand != null && noDataValuesPerBand.length != 0) {
+		if ((noDataValuesPerBand != null) && (noDataValuesPerBand.length != 0)) {
 			this.noDataValuesPerBand = noDataValuesPerBand;
 		}
 		else {
@@ -427,11 +429,32 @@ public class RasterDataAdapter implements
 				DATA_FIELD_ID);
 	}
 
+	public static HierarchicalNumericIndexStrategy findHierarchicalStrategy(
+			final NumericIndexStrategy indexStrategy ) {
+		if (indexStrategy instanceof HierarchicalNumericIndexStrategy) {
+			return (HierarchicalNumericIndexStrategy) indexStrategy;
+		}
+		if (indexStrategy instanceof CompoundIndexStrategy) {
+			final HierarchicalNumericIndexStrategy primary = findHierarchicalStrategy(((CompoundIndexStrategy) indexStrategy)
+					.getPrimarySubStrategy());
+			if (primary != null) {
+				return primary;
+			}
+			final HierarchicalNumericIndexStrategy secondary = findHierarchicalStrategy(((CompoundIndexStrategy) indexStrategy)
+					.getSecondarySubStrategy());
+			if (secondary != null) {
+				return secondary;
+			}
+		}
+		return null;
+	}
+
 	@Override
 	public Iterator<GridCoverage> convertToIndex(
 			final PrimaryIndex index,
 			final GridCoverage gridCoverage ) {
-		if (index.getIndexStrategy() instanceof HierarchicalNumericIndexStrategy) {
+		final HierarchicalNumericIndexStrategy indexStrategy = findHierarchicalStrategy(index.getIndexStrategy());
+		if (indexStrategy instanceof HierarchicalNumericIndexStrategy) {
 			final CoordinateReferenceSystem sourceCrs = gridCoverage.getCoordinateReferenceSystem();
 
 			final Envelope sampleEnvelope = gridCoverage.getEnvelope();
@@ -460,7 +483,7 @@ public class RasterDataAdapter implements
 
 			final MultiDimensionalNumericData bounds = GeometryUtils.basicConstraintSetFromEnvelope(
 					projectedReferenceEnvelope).getIndexConstraints(
-					index.getIndexStrategy());
+					indexStrategy);
 			final GridEnvelope gridEnvelope = gridCoverage.getGridGeometry().getGridRange();
 			// only one set of constraints..hence reference '0' element
 			final double[] tileRangePerDimension = new double[bounds.getDimensionCount()];
@@ -475,10 +498,8 @@ public class RasterDataAdapter implements
 						gridEnvelope.getSpan(d),
 						maxSpan);
 			}
-			final HierarchicalNumericIndexStrategy imagePyramid = (HierarchicalNumericIndexStrategy) index
-					.getIndexStrategy();
 			final TreeMap<Double, SubStrategy> substrategyMap = new TreeMap<Double, SubStrategy>();
-			for (final SubStrategy pyramidLevel : imagePyramid.getSubStrategies()) {
+			for (final SubStrategy pyramidLevel : indexStrategy.getSubStrategies()) {
 				final double[] idRangePerDimension = pyramidLevel
 						.getIndexStrategy()
 						.getHighestPrecisionIdRangePerDimension();
@@ -908,7 +929,7 @@ public class RasterDataAdapter implements
 	/**
 	 * This method is responsible for creating a coverage from the supplied
 	 * {@link RenderedImage}.
-	 * 
+	 *
 	 * @param image
 	 * @return
 	 * @throws IOException

@@ -55,6 +55,14 @@ public class CompoundIndexStrategy implements
 		};
 	}
 
+	public NumericIndexStrategy getPrimarySubStrategy() {
+		return subStrategy1;
+	}
+
+	public NumericIndexStrategy getSecondarySubStrategy() {
+		return subStrategy2;
+	}
+
 	@Override
 	public byte[] toBinary() {
 		final byte[] delegateBinary1 = PersistenceUtils.toBinary(subStrategy1);

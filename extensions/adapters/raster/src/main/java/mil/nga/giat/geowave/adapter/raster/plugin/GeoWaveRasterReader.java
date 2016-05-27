@@ -746,8 +746,8 @@ public class GeoWaveRasterReader extends
 		for (final PrimaryIndex rasterIndex : indices) {
 			if (SpatialDimensionalityTypeProvider.isSpatial(rasterIndex)) {
 				// determine the correct tier to query for the given resolution
-				final NumericIndexStrategy strategy = rasterIndex.getIndexStrategy();
-				if (strategy instanceof HierarchicalNumericIndexStrategy) {
+				final HierarchicalNumericIndexStrategy strategy = RasterDataAdapter.findHierarchicalStrategy(rasterIndex.getIndexStrategy());
+				if (strategy != null) {
 					final TreeMap<Double, SubStrategy> sortedStrategies = new TreeMap<Double, SubStrategy>();
 					SubStrategy targetIndexStrategy = null;
 					for (final SubStrategy subStrategy : ((HierarchicalNumericIndexStrategy) strategy)
@@ -850,7 +850,7 @@ public class GeoWaveRasterReader extends
 	 *
 	 * @throws DataSourceException
 	 */
-	private static void transformRequestEnvelope(
+	public static void transformRequestEnvelope(
 			final GeoWaveRasterReaderState state,
 			final CoordinateReferenceSystem crs )
 			throws DataSourceException {
