@@ -103,15 +103,21 @@ public class WRS2GeometryStore
 			throws MalformedURLException,
 			IOException {
 		if (!wrs2Shape.exists()) {
-			wrs2Directory.delete();
+			if (!wrs2Directory.delete()) {
+				LOGGER.warn("Unable to delete '" + wrs2Directory.getAbsolutePath() + "'");
+			}
 			final File wsDir = wrs2Directory.getParentFile();
-			wsDir.mkdirs();
+			if (!wsDir.exists() && !wsDir.mkdirs()) {
+				LOGGER.warn("Unable to create directory '" + wsDir.getAbsolutePath() + "'");
+			}
 			// download and unzip the shapefile
 			final File targetFile = new File(
 					wsDir,
 					WRS2_SHAPE_ZIP);
 			if (targetFile.exists()) {
-				targetFile.delete();
+				if (!targetFile.delete()) {
+					LOGGER.warn("Unable to delete file '" + targetFile.getAbsolutePath() + "'");
+				}
 			}
 			FileUtils.copyURLToFile(
 					new URL(
@@ -168,7 +174,7 @@ public class WRS2GeometryStore
 			LOGGER.error(
 					"Unable to read wrs2_asc_desc shapefile '" + wrs2Shape.getAbsolutePath() + "'",
 					e);
-			System.exit(-1);
+			throw (e);
 		}
 	}
 

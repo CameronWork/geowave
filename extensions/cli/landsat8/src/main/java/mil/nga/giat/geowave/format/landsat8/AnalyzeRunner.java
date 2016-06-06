@@ -1,6 +1,7 @@
 package mil.nga.giat.geowave.format.landsat8;
 
 import java.io.IOException;
+import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -38,6 +39,7 @@ public class AnalyzeRunner
 					landsatOptions.isUseCachedScenes(),
 					landsatOptions.isNBestPerSpatial(),
 					landsatOptions.getNBestScenes(),
+					landsatOptions.getNBestBands(),
 					landsatOptions.getCqlFilter(),
 					landsatOptions.getWorkspaceDir())) {
 				final AnalysisInfo info = new AnalysisInfo();
@@ -55,8 +57,7 @@ public class AnalyzeRunner
 							band,
 							info);
 				}
-				info.printSceneInfo();
-				info.printTotals();
+				lastSceneComplete(info);
 			}
 		}
 		catch (final IOException e) {
@@ -81,6 +82,7 @@ public class AnalyzeRunner
 	protected void lastSceneComplete(
 			final AnalysisInfo analysisInfo ) {
 		analysisInfo.printSceneInfo();
+		analysisInfo.printTotals();
 	}
 
 	protected static class AnalysisInfo
@@ -172,6 +174,8 @@ public class AnalyzeRunner
 
 		private void printSceneInfo() {
 			if (sceneCount > 0) {
+				final SimpleDateFormat sdf = new SimpleDateFormat(
+						SceneFeatureIterator.AQUISITION_DATE_FORMAT);
 				boolean first = true;
 				for (final Entry<String, SimpleFeature> entry : entityBandIdToSimpleFeatureMap.entrySet()) {
 					final String bandId = entry.getKey();
@@ -180,9 +184,10 @@ public class AnalyzeRunner
 						// print scene info
 						System.out.println("\n<--   "
 								+ feature.getAttribute(SceneFeatureIterator.ENTITY_ID_ATTRIBUTE_NAME) + "   -->");
-						System.out.println("Acquisition Date: "
-								+ SceneFeatureIterator.AQUISITION_DATE_FORMAT.format(feature
-										.getAttribute(SceneFeatureIterator.ACQUISITION_DATE_ATTRIBUTE_NAME)));
+						System.out
+								.println("Acquisition Date: "
+										+ sdf.format(feature
+												.getAttribute(SceneFeatureIterator.ACQUISITION_DATE_ATTRIBUTE_NAME)));
 						System.out.println("Cloud Cover: "
 								+ feature.getAttribute(SceneFeatureIterator.CLOUD_COVER_ATTRIBUTE_NAME));
 						System.out.println("Scene Download URL: "
@@ -217,8 +222,10 @@ public class AnalyzeRunner
 			System.out.println("\n<--   Totals   -->");
 			System.out.println("Total Scenes: " + sceneCount);
 			if (sceneCount > 0) {
-				System.out.println("Date Range: [" + SceneFeatureIterator.AQUISITION_DATE_FORMAT.format(new Date(
-						startDate)) + ", " + SceneFeatureIterator.AQUISITION_DATE_FORMAT.format(new Date(
+				final SimpleDateFormat sdf = new SimpleDateFormat(
+						SceneFeatureIterator.AQUISITION_DATE_FORMAT);
+				System.out.println("Date Range: [" + sdf.format(new Date(
+						startDate)) + ", " + sdf.format(new Date(
 						endDate)) + "]");
 				System.out.println("Cloud Cover Range: [" + minCloudCover + ", " + maxCloudCover + "]");
 				System.out.println("Average Cloud Cover: " + (totalCloudCover / sceneCount));

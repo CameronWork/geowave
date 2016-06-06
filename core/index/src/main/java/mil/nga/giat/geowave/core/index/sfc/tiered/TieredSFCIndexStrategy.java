@@ -700,6 +700,16 @@ public class TieredSFCIndexStrategy implements
 				List<ByteArrayId> ids ) {
 
 			for (ByteArrayId id : ids) {
+				if (id == null) {
+					System.err.println("crap");
+				}
+				if (orderedTierIdToSfcIndex.get(id.getBytes()[0]) == null) {
+
+					System.err.println(id.getBytes());
+					System.err.println(id.getBytes()[0]);
+
+					System.err.println("crap");
+				}
 				tierCounts[orderedTierIdToSfcIndex.get(
 						id.getBytes()[0]).intValue()]++;
 			}

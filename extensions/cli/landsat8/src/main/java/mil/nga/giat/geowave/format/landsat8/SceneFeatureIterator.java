@@ -5,9 +5,10 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
-import java.io.FileReader;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.io.Serializable;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.text.ParseException;
@@ -44,12 +45,16 @@ import com.google.common.collect.MinMaxPriorityQueue;
 import com.google.common.io.LineReader;
 import com.vividsolutions.jts.geom.MultiPolygon;
 
+import mil.nga.giat.geowave.core.index.StringUtils;
+
 public class SceneFeatureIterator implements
 		SimpleFeatureIterator
 {
 	protected static class BestCloudCoverComparator implements
-			Comparator<SimpleFeature>
+			Comparator<SimpleFeature>,
+			Serializable
 	{
+		private static final long serialVersionUID = -5294130929073387335L;
 
 		@Override
 		public int compare(
@@ -83,8 +88,7 @@ public class SceneFeatureIterator implements
 		ENTITY_ID_ATTRIBUTE_NAME,
 		SCENE_DOWNLOAD_ATTRIBUTE_NAME
 	};
-	protected static SimpleDateFormat AQUISITION_DATE_FORMAT = new SimpleDateFormat(
-			"yyyy-MM-dd HH:mm:ss.SSS");
+	protected static String AQUISITION_DATE_FORMAT = "yyyy-MM-dd HH:mm:ss.SSS";
 	private final String SCENES_DIR = "scenes";
 	private final String COMPRESSED_FILE_NAME = "scene_list.gz";
 	private final String CSV_FILE_NAME = "scene_list";
@@ -139,10 +143,14 @@ public class SceneFeatureIterator implements
 					scenesDir,
 					TEMP_CSV_FILE_NAME);
 			if (compressedFile.exists()) {
-				compressedFile.delete();
+				if (!compressedFile.delete()) {
+					LOGGER.warn("Unable to delete '" + compressedFile.getAbsolutePath() + "'");
+				}
 			}
 			if (tempCsvFile.exists()) {
-				tempCsvFile.delete();
+				if (!tempCsvFile.delete()) {
+					LOGGER.warn("Unable to delete '" + tempCsvFile.getAbsolutePath() + "'");
+				}
 			}
 			InputStream in = null;
 			// first download the gzipped file
@@ -189,7 +197,9 @@ public class SceneFeatureIterator implements
 				}
 				fin.close();
 				// once we have a csv we can cleanup the compressed file
-				compressedFile.delete();
+				if (!compressedFile.delete()) {
+					LOGGER.warn("Unable to delete '" + compressedFile.getAbsolutePath() + "'");
+				}
 				out.close();
 			}
 			catch (final IOException e) {
@@ -208,17 +218,26 @@ public class SceneFeatureIterator implements
 			}
 			if (onlyScenesSinceLastRun && csvFile.exists()) {
 				// seek the number of lines of the existing file
-				final LineReader lines = new LineReader(
-						new FileReader(
-								csvFile));
-				while (lines.readLine() != null) {
-					startLine++;
+				try (final FileInputStream is = new FileInputStream(
+						csvFile)) {
+					final LineReader lines = new LineReader(
+							new InputStreamReader(
+									is,
+									StringUtils.UTF8_CHAR_SET));
+					while (lines.readLine() != null) {
+						startLine++;
+					}
 				}
 			}
 			if (csvFile.exists()) {
-				csvFile.delete();
+				if (!csvFile.delete()) {
+					LOGGER.warn("Unable to delete '" + csvFile.getAbsolutePath() + "'");
+				}
 			}
-			tempCsvFile.renameTo(csvFile);
+			if (!tempCsvFile.renameTo(csvFile)) {
+				LOGGER.warn("Unable to rename '" + tempCsvFile.getAbsolutePath() + "' to '" + csvFile.getAbsolutePath()
+						+ "'");
+			}
 		}
 		type = createFeatureType();
 		setupCsvToFeatureIterator(
@@ -227,18 +246,9 @@ public class SceneFeatureIterator implements
 				geometryStore,
 				cqlFilter);
 		if (nBestScenes > 0) {
-			// rely on best scene aggregation at a higher level if the filter is
-			// using attributes not contained in the scene
-
-			if (!hasOtherProperties(cqlFilter)) {
-				nBestScenes(
-						nBestScenesByPathRow,
-						nBestScenes);
-			}
-			else {
-				LOGGER
-						.warn("Applying N best scene calculation using band metadata in the filter can be slow - band metadata must be applied to every scene.");
-			}
+			nBestScenes(
+					nBestScenesByPathRow,
+					nBestScenes);
 		}
 	}
 
@@ -392,9 +402,12 @@ public class SceneFeatureIterator implements
 			final Filter cqlFilter )
 			throws FileNotFoundException,
 			IOException {
+		final FileInputStream is = new FileInputStream(
+				csvFile);
 		parser = new CSVParser(
-				new FileReader(
-						csvFile),
+				new InputStreamReader(
+						is,
+						StringUtils.UTF8_CHAR_SET),
 				CSVFormat.DEFAULT.withHeader().withSkipHeaderRecord());
 		final Iterator<CSVRecord> csvIterator = parser.iterator();
 		long startLineDecrementor = startLine;
@@ -502,8 +515,10 @@ public class SceneFeatureIterator implements
 			featureBuilder.add(shape);
 			featureBuilder.add(entityId);
 			Date aquisitionDate;
+			final SimpleDateFormat sdf = new SimpleDateFormat(
+					AQUISITION_DATE_FORMAT);
 			try {
-				aquisitionDate = AQUISITION_DATE_FORMAT.parse(input.get("acquisitionDate"));
+				aquisitionDate = sdf.parse(input.get("acquisitionDate"));
 				featureBuilder.add(aquisitionDate);
 			}
 			catch (final ParseException e) {

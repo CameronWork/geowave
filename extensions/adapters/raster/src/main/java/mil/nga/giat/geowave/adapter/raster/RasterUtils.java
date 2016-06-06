@@ -554,6 +554,11 @@ public class RasterUtils
 					// global extrema
 					result = w.setExtrema(
 							extrema).rescaleToBytes().getRenderedImage();
+					break;
+				default:
+					// findbugs seems to want to have a default case, default is
+					// to do nothing
+					break;
 			}
 		}
 		if (outputTransparentColor != null) {
@@ -587,9 +592,6 @@ public class RasterUtils
 					"matchcdf",
 					adaptedResult,
 					cdFeq);
-			if (!(result instanceof PlanarImage)) {
-				result = PlanarImage.wrapRenderedImage(result);
-			}
 		}
 		return coverageFactory.create(
 				coverageName,

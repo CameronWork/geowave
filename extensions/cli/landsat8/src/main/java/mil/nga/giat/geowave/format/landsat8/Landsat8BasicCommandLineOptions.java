@@ -26,7 +26,9 @@ public class Landsat8BasicCommandLineOptions
 	private boolean useCachedScenes;
 	@Parameter(names = "--nbestscenes", description = "An option to identify and only use a set number of scenes with the best cloud cover", converter = IntegerConverter.class)
 	private int nBestScenes;
-	@Parameter(names = "--nbestperspatial", description = "A boolean flag, when applied with --nbestscenes will aggregate scenes by path/row")
+	@Parameter(names = "--nbestbands", description = "An option to identify and only use a set number of bands with the best cloud cover", converter = IntegerConverter.class)
+	private int nBestBands;
+	@Parameter(names = "--nbestperspatial", description = "A boolean flag, when applied with --nbestscenes or --nbestbands will aggregate scenes and/or bands by path/row")
 	private boolean nBestPerSpatial;
 
 	public Landsat8BasicCommandLineOptions() {}
@@ -56,5 +58,9 @@ public class Landsat8BasicCommandLineOptions
 
 	public boolean isNBestPerSpatial() {
 		return nBestPerSpatial;
+	}
+
+	public int getNBestBands() {
+		return nBestBands;
 	}
 }

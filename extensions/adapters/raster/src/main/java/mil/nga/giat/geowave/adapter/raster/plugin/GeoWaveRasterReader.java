@@ -28,7 +28,6 @@ import org.geotools.coverage.grid.io.AbstractGridCoverage2DReader;
 import org.geotools.coverage.grid.io.AbstractGridFormat;
 import org.geotools.coverage.grid.io.GridCoverage2DReader;
 import org.geotools.coverage.grid.io.OverviewPolicy;
-import org.geotools.coverage.processing.Operations;
 import org.geotools.data.DataSourceException;
 import org.geotools.factory.Hints;
 import org.geotools.geometry.GeneralEnvelope;
@@ -55,6 +54,7 @@ import com.vividsolutions.jts.geom.GeometryFactory;
 
 import mil.nga.giat.geowave.adapter.raster.RasterUtils;
 import mil.nga.giat.geowave.adapter.raster.Resolution;
+import mil.nga.giat.geowave.adapter.raster.adapter.CompoundHierarchicalIndexStrategyWrapper;
 import mil.nga.giat.geowave.adapter.raster.adapter.RasterDataAdapter;
 import mil.nga.giat.geowave.adapter.raster.query.IndexOnlySpatialQuery;
 import mil.nga.giat.geowave.adapter.raster.stats.HistogramStatistics;
@@ -64,7 +64,6 @@ import mil.nga.giat.geowave.core.geotime.store.statistics.BoundingBoxDataStatist
 import mil.nga.giat.geowave.core.index.ByteArrayId;
 import mil.nga.giat.geowave.core.index.HierarchicalNumericIndexStrategy;
 import mil.nga.giat.geowave.core.index.HierarchicalNumericIndexStrategy.SubStrategy;
-import mil.nga.giat.geowave.core.index.NumericIndexStrategy;
 import mil.nga.giat.geowave.core.store.AdapterToIndexMapping;
 import mil.nga.giat.geowave.core.store.CloseableIterator;
 import mil.nga.giat.geowave.core.store.CloseableIterator.Wrapper;
@@ -746,12 +745,12 @@ public class GeoWaveRasterReader extends
 		for (final PrimaryIndex rasterIndex : indices) {
 			if (SpatialDimensionalityTypeProvider.isSpatial(rasterIndex)) {
 				// determine the correct tier to query for the given resolution
-				final HierarchicalNumericIndexStrategy strategy = RasterDataAdapter.findHierarchicalStrategy(rasterIndex.getIndexStrategy());
+				final HierarchicalNumericIndexStrategy strategy = CompoundHierarchicalIndexStrategyWrapper
+						.findHierarchicalStrategy(rasterIndex.getIndexStrategy());
 				if (strategy != null) {
 					final TreeMap<Double, SubStrategy> sortedStrategies = new TreeMap<Double, SubStrategy>();
 					SubStrategy targetIndexStrategy = null;
-					for (final SubStrategy subStrategy : ((HierarchicalNumericIndexStrategy) strategy)
-							.getSubStrategies()) {
+					for (final SubStrategy subStrategy : strategy.getSubStrategies()) {
 						final double[] idRangePerDimension = subStrategy
 								.getIndexStrategy()
 								.getHighestPrecisionIdRangePerDimension();

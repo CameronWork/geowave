@@ -49,6 +49,7 @@ public class BandFeatureIterator implements
 			final boolean useCachedScenes,
 			final boolean nBestScenesByPathRow,
 			final int nBestScenes,
+			final int nBestBands,
 			final Filter cqlFilter,
 			final String workspaceDir )
 			throws MalformedURLException,
@@ -62,19 +63,19 @@ public class BandFeatureIterator implements
 						cqlFilter,
 						workspaceDir),
 				nBestScenesByPathRow,
-				nBestScenes,
+				nBestBands,
 				cqlFilter);
 	}
 
 	public BandFeatureIterator(
 			final SceneFeatureIterator sceneIterator,
 			final boolean nBestScenesByPathRow,
-			final int nBestScenes,
+			final int nBestBands,
 			final Filter cqlFilter ) {
 		this.sceneIterator = sceneIterator;
 		init(
 				nBestScenesByPathRow,
-				nBestScenes,
+				nBestBands,
 				cqlFilter);
 	}
 
@@ -99,7 +100,7 @@ public class BandFeatureIterator implements
 
 	private void init(
 			final boolean nBestScenesByPathRow,
-			final int nBestScenes,
+			final int nBestBands,
 			final Filter cqlFilter ) {
 		// wrap the iterator with a feature conversion and a filter (if
 		// provided)
@@ -127,11 +128,11 @@ public class BandFeatureIterator implements
 						iterator,
 						new CqlFilterPredicate(
 								cqlFilter));
-				if (nBestScenes > 0) {
+				if (nBestBands > 0) {
 					iterator = SceneFeatureIterator.nBestScenes(
 							this,
 							nBestScenesByPathRow,
-							nBestScenes);
+							nBestBands);
 				}
 			}
 		}

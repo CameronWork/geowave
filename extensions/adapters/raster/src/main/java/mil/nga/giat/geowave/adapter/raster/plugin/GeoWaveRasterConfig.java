@@ -64,7 +64,7 @@ public class GeoWaveRasterConfig
 
 	private Boolean equalizeHistogramOverride = null;
 
-	private final Boolean scaleTo8Bit = null;
+	private Boolean scaleTo8Bit = null;
 
 	private Integer interpolationOverride = null;
 
@@ -77,6 +77,7 @@ public class GeoWaveRasterConfig
 				dataStoreConfig,
 				geowaveNamespace,
 				null,
+				null,
 				null);
 	}
 
@@ -84,10 +85,12 @@ public class GeoWaveRasterConfig
 			final Map<String, String> dataStoreConfig,
 			final String geowaveNamespace,
 			final Boolean equalizeHistogramOverride,
+			final Boolean scaleTo8Bit,
 			final Integer interpolationOverride ) {
 		final GeoWaveRasterConfig result = new GeoWaveRasterConfig();
 		result.equalizeHistogramOverride = equalizeHistogramOverride;
 		result.interpolationOverride = interpolationOverride;
+		result.scaleTo8Bit = scaleTo8Bit;
 		synchronized (result) {
 			result.storeConfigObj = dataStoreConfig;
 			result.factoryFamily = GeoWaveStoreFinder.findStoreFamily(result.storeConfigObj);
@@ -194,6 +197,16 @@ public class GeoWaveRasterConfig
 				result.equalizeHistogramOverride = false;
 			}
 		}
+		final String scaleTo8Bit = params.get(ConfigParameter.SCALE_TO_8BIT.getConfigName());
+		if (scaleTo8Bit != null) {
+			if (scaleTo8Bit.trim().toLowerCase().equals(
+					"true")) {
+				result.scaleTo8Bit = true;
+			}
+			else {
+				result.scaleTo8Bit = false;
+			}
+		}
 		if (params.containsKey(ConfigParameter.INTERPOLATION.getConfigName())) {
 			result.interpolationOverride = Integer.parseInt(params.get(ConfigParameter.INTERPOLATION.getConfigName()));
 		}
@@ -263,7 +276,7 @@ public class GeoWaveRasterConfig
 	}
 
 	public boolean isScaleTo8BitSet() {
-		return (equalizeHistogramOverride != null);
+		return (scaleTo8Bit != null);
 	}
 
 	public boolean isScaleTo8Bit() {

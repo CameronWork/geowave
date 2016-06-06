@@ -40,13 +40,17 @@ public class DownloadRunner extends
 				landsatOptions.getWorkspaceDir());
 		if (localPath.exists()) {
 			if (downloadOptions.isOverwriteIfExists()) {
-				localPath.delete();
+				if (!localPath.delete()) {
+					LOGGER.warn("Unable to delete file '" + localPath.getAbsolutePath() + "'");
+				}
 			}
 			else {
 				return;
 			}
 		}
-		localPath.getParentFile().mkdirs();
+		if (!localPath.getParentFile().exists() && !localPath.getParentFile().mkdirs()) {
+			LOGGER.warn("Unable to create directory '" + localPath.getParentFile().getAbsolutePath() + "'");
+		}
 		InputStream in = null;
 		// first download the gzipped file
 		int retry = 0;
