@@ -77,7 +77,7 @@ public class GeoWaveServicesIT
 	public void testServices()
 			throws IOException,
 			SchemaException {
-
+		TestUtils.deleteAll(dataStoreOptions);
 		// initialize the service clients
 		geoserverServiceClient = new GeoserverServiceClient(
 				ServicesTestEnvironment.GEOWAVE_BASE_URL);

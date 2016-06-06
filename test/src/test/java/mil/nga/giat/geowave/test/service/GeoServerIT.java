@@ -45,7 +45,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import mil.nga.giat.geowave.core.store.operations.remote.options.DataStorePluginOptions;
-import mil.nga.giat.geowave.datastore.accumulo.AccumuloStoreFactoryFamily;
 import mil.nga.giat.geowave.service.client.GeoserverServiceClient;
 import mil.nga.giat.geowave.test.GeoWaveITRunner;
 import mil.nga.giat.geowave.test.TestUtils;
@@ -86,6 +85,7 @@ public class GeoServerIT
 	public void initialize()
 			throws ClientProtocolException,
 			IOException {
+		TestUtils.deleteAll(dataStoreOptions);
 		// setup the wfs-requests
 		geostuff_layer = MessageFormat.format(
 				IOUtils.toString(new FileInputStream(
