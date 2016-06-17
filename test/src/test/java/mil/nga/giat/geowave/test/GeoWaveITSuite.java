@@ -43,7 +43,7 @@ import mil.nga.giat.geowave.test.store.DataStatisticsStoreIT;
 	PolygonDataIdQueryIT.class,
 	ConfigCacheIT.class,
 	DataStatisticsStoreIT.class,
-	LandsatIT.class,
+//	LandsatIT.class,
 })
 public class GeoWaveITSuite
 {
