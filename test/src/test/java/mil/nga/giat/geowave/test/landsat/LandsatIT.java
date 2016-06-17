@@ -122,15 +122,10 @@ public class LandsatIT
 	private static final double NORTH = 34.25;
 	private static final double SOUTH = 33.5;
 
-	@BeforeClass
-	public static void getGDAL()
-			throws IOException {
-		MapProjection.SKIP_SANITY_CHECKS = true;
-	}
-
 	@Test
 	public void testMosaic()
 			throws Exception {
+		MapProjection.SKIP_SANITY_CHECKS = true;
 		TestUtils.deleteAll(dataStoreOptions);
 		// just use the QA band as QA is the smallest, get the best cloud cover,
 		// but ensure it is before now so no recent collection affects the test
