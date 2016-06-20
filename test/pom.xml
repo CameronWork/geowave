@@ -66,11 +66,6 @@
 			<version>2.2</version>
 		</dependency>
 		<dependency>
-			<groupId>mil.nga.giat</groupId>
-			<artifactId>geowave-cli-landsat8</artifactId>
-			<version>${project.version}</version>
-		</dependency>
-		<dependency>
 			<groupId>org.apache.hadoop</groupId>
 			<artifactId>hadoop-minicluster</artifactId>
 			<version>${hadoop.version}</version>
