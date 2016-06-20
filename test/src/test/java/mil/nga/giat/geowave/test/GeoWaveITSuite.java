@@ -25,6 +25,7 @@ import mil.nga.giat.geowave.test.store.DataStatisticsStoreIT;
 
 @RunWith(GeoWaveITSuiteRunner.class)
 @SuiteClasses({
+	 LandsatIT.class,
 	ConfigCacheIT.class,
 	DataStatisticsStoreIT.class,
 	GeoServerIT.class,
@@ -43,7 +44,6 @@ import mil.nga.giat.geowave.test.store.DataStatisticsStoreIT;
 	DBScanIT.class,
 	SpatialTemporalQueryIT.class,
 	PolygonDataIdQueryIT.class,
-// LandsatIT.class,
 })
 public class GeoWaveITSuite
 {
