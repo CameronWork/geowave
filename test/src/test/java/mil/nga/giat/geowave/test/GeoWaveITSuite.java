@@ -25,6 +25,11 @@ import mil.nga.giat.geowave.test.store.DataStatisticsStoreIT;
 
 @RunWith(GeoWaveITSuiteRunner.class)
 @SuiteClasses({
+	ConfigCacheIT.class,
+	DataStatisticsStoreIT.class,
+	GeoServerIT.class,
+	GeoWaveServicesIT.class,
+	GeoWaveIngestGeoserverIT.class,
 	GeoWaveBasicIT.class,
 	 BasicKafkaIT.class,
 	 BasicMapReduceIT.class,
@@ -33,16 +38,11 @@ import mil.nga.giat.geowave.test.store.DataStatisticsStoreIT;
 	 KDERasterResizeIT.class,
 	 GeoWaveKMeansIT.class,
 	 GeoWaveNNIT.class,
-		GeoServerIT.class,
-		GeoWaveServicesIT.class,
-		GeoWaveIngestGeoserverIT.class,
 	AttributesSubsetQueryIT.class,
 	SecondaryIndexingQueryIT.class,
 	DBScanIT.class,
 	SpatialTemporalQueryIT.class,
 	PolygonDataIdQueryIT.class,
-	ConfigCacheIT.class,
-	DataStatisticsStoreIT.class,
 // LandsatIT.class,
 })
 public class GeoWaveITSuite
