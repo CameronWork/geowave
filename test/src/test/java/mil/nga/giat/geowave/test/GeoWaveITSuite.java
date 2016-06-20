@@ -26,11 +26,11 @@ import mil.nga.giat.geowave.test.store.DataStatisticsStoreIT;
 @RunWith(GeoWaveITSuiteRunner.class)
 @SuiteClasses({
 	GeoWaveBasicIT.class,
-	BasicKafkaIT.class,
-	BasicMapReduceIT.class,
-	GeoWaveRasterIT.class,
-	BulkIngestInputGenerationIT.class,
-	KDERasterResizeIT.class,
+//	BasicKafkaIT.class,
+//	BasicMapReduceIT.class,
+//	GeoWaveRasterIT.class,
+//	BulkIngestInputGenerationIT.class,
+//	KDERasterResizeIT.class,
 //	GeoWaveKMeansIT.class,
 //	GeoWaveNNIT.class,
 	GeoServerIT.class,
