@@ -377,6 +377,7 @@ public class GeoServerIT
 		final boolean result = r.getStatusLine().getStatusCode() == Status.OK.getStatusCode();
 		if (result) {
 			final String content = getContent(r);
+			System.out.println(content);
 			final String patternX = "34.6815818";
 			final String patternY = "35.1828408";
 			// name space check as well
@@ -430,7 +431,7 @@ public class GeoServerIT
 						"cql_filter",
 						URLEncoder
 								.encode(
-										"BBOX(geometry,34.68,35.18,34.7,35.19) and when during 2005-05-19T00:00:00Z/2005-05-19T21:32:56Z",
+										"BBOX(geometry,34.68,34.18,35.7,35.19) and when during 2005-05-19T00:00:00Z/2005-05-19T21:32:56Z",
 										"UTF8")),
 				new BasicNameValuePair(
 						"srsName",
