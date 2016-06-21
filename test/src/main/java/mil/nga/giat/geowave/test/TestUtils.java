@@ -467,6 +467,7 @@ public class TestUtils
 		final int maxErrorPixels = (int) Math.round(maxPctError * totalPixels);
 		int errorPixels = 0;
 		// test under default style
+		boolean prevPrinted = false;
 		for (int x = 0; x < expected.getWidth(); x++) {
 			for (int y = 0; y < expected.getHeight(); y++) {
 				if (actual.getRGB(
@@ -497,6 +498,16 @@ public class TestUtils
 //								actual.getRGB(
 //										x,
 //										y)));
+						prevPrinted = true;
+					}
+					else{
+						if (prevPrinted){
+							System.out.println(String.format(
+									"recovered at [%d,%d",
+									x,
+									y));
+						}
+						prevPrinted = false;
 					}
 				}
 			}
