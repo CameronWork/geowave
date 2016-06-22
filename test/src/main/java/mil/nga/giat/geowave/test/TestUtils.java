@@ -501,15 +501,15 @@ public class TestUtils
 						// y)));
 						prevPrinted = true;
 					}
-					else {
-						if (prevPrinted) {
-							System.out.println(String.format(
-									"recovered at [%d,%d",
-									x,
-									y));
-						}
-						prevPrinted = false;
+				}
+				else {
+					if (prevPrinted) {
+						System.out.println(String.format(
+								"recovered at [%d,%d",
+								x,
+								y));
 					}
+					prevPrinted = false;
 				}
 			}
 		}
