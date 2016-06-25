@@ -50,13 +50,16 @@ import mil.nga.giat.geowave.test.annotation.GeoWaveTestStore;
 import mil.nga.giat.geowave.test.annotation.GeoWaveTestStore.GeoWaveStoreType;
 
 @RunWith(GeoWaveITRunner.class)
-@Environments({
-	Environment.MAP_REDUCE
-})
 public class LandsatIT
 {
 	private final static Logger LOGGER = LoggerFactory.getLogger(LandsatIT.class);
-
+	@Test
+	public void printOs(){
+		System.out.println("os name: " + System.getProperty("os.name"));
+		System.out.println("os arch: " + System.getProperty("os.arch"));
+		System.out.println("os version: " + System.getProperty("os.version"));
+		
+	}
 //	private static class RasterIngestTester extends
 //			RasterIngestRunner
 //	{
