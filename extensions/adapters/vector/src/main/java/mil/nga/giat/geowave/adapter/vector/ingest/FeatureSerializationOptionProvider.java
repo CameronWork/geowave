@@ -8,7 +8,7 @@ public class FeatureSerializationOptionProvider implements
 		Persistable
 {
 	@Parameter(names = "--whole", description = "A flag to indicate whether whole feature serialization should be used")
-	private boolean whole = false;
+	private boolean whole = true;
 
 	@Parameter(names = "--avro", description = "A flag to indicate whether avro feature serialization should be used")
 	private boolean avro = false;
