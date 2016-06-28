@@ -97,8 +97,8 @@ public class SpatialTemporalQuery extends
 				TimeDefinition.class,
 				new ConstraintData(
 						new NumericRange(
-								temporalRange.getStartTime().getTime(),
-								temporalRange.getEndTime().getTime()),
+								temporalRange.getStartTime().getTime() + 1,
+								temporalRange.getEndTime().getTime() - 1),
 						isDefault));
 
 	}
@@ -112,8 +112,8 @@ public class SpatialTemporalQuery extends
 					TimeDefinition.class,
 					new ConstraintData(
 							new NumericRange(
-									range.getStartTime().getTime(),
-									range.getEndTime().getTime()),
+									range.getStartTime().getTime()+1,
+									range.getEndTime().getTime()-1),
 							isDefault)));
 		}
 		return new Constraints(
@@ -158,8 +158,8 @@ public class SpatialTemporalQuery extends
 						TimeDefinition.class,
 						new ConstraintData(
 								new NumericRange(
-										startTime.getTime(),
-										endTime.getTime()),
+										startTime.getTime()+1,
+										endTime.getTime()-1),
 								false))));
 	}
 
